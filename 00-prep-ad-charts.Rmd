@@ -1,0 +1,577 @@
+---
+title: "Openstreetmap-Based Aerodrome Layouts"
+author: "RQ"
+date: "14/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(osmdata)
+library(sf)
+library(ggspatial)
+```
+
+This file plays with OSM and extracts data for plotting aerodrome layouts. 
+An initial step towards wrapping the code into function is done further down.
+The APT_BBOX.xlsx in the data-ad-charts sub-folder provides a list for the airports and 
+associated bounding boxes. 
+
+```{r}
+# look-up bounding box, e.g. http://bboxfinder.com/
+# -0.501251,51.454987,-0.410099,51.480538
+bb <- matrix( c(-0.501251,51.454987,-0.410099,51.480538), ncol = 2, byrow = FALSE )
+colnames(bb) <- c("min", "max")
+rownames(bb) <- c("x", "y")
+bb
+
+
+
+q <- bb %>% opq() %>% 
+  add_osm_feature(
+    key = "aeroway"
+    ,value =c("aerodrome", "apron", "control_tower", "gate", "hangar"
+              ,"helipad", "runway", "taxiway", "terminal") ) %>% 
+  osmdata_sf() %>%
+  unique_osmdata()
+
+ggplot() +
+  geom_sf(data = q$osm_polygons
+          ,inherit.aes = FALSE
+          ,color = "lightblue"
+          #,fill  = "lightblue"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway != "runway")
+          , color = "grey"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway == "runway"),
+          inherit.aes = FALSE,
+          color = "black",
+          size = 2 #.4
+          ,alpha = .8) +
+  theme_minimal()
+```
+
+```{r}
+# bboxfinder.com EGGK lng/lat
+bb_lonlat <- c(-0.223915,51.141733,-0.155851,51.165738)
+apt_icao  <- "EGKK"
+apt_name  <- "London Gatwick"
+
+q <- opq(bbox = bb_lonlat) %>% 
+  add_osm_feature(
+    key = "aeroway"
+    ,value =c("aerodrome", "apron", "control_tower", "gate", "hangar"
+              ,"helipad", "runway", "taxiway", "terminal") ) %>% 
+  osmdata_sf() %>%
+  unique_osmdata()
+
+ggplot() +
+  geom_sf(data = q$osm_polygons
+          ,inherit.aes = FALSE
+          ,color = "lightblue"
+          #,fill  = "lightblue"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway != "runway")
+          , color = "grey"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway == "runway"),
+          inherit.aes = FALSE,
+          color = "black",
+          size = 2 #.4
+          ,alpha = .8) +
+  theme_void() +
+  labs(title = "EGKK")
+
+fn <- paste(apt_icao, ".png", sep = "")
+ggsave(filename = fn, path = "data-ad-charts")
+
+```
+
+```{r}
+# bboxfinder.com EGLL lng/lat
+bb_lonlat <- c(-0.500123,51.454208,-0.408771,51.482241)
+apt_icao  <- "EGLL"
+apt_name  <- "London Heathrow"
+
+q <- opq(bbox = bb_lonlat) %>% 
+  add_osm_feature(
+    key = "aeroway"
+    ,value =c("aerodrome", "apron", "control_tower", "gate", "hangar"
+              ,"helipad", "runway", "taxiway", "terminal") ) %>% 
+  osmdata_sf() %>%
+  unique_osmdata()
+
+ggplot() +
+  geom_sf(data = q$osm_polygons
+          ,inherit.aes = FALSE
+          ,color = "lightblue"
+          #,fill  = "lightblue"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway != "runway")
+          , color = "grey"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway == "runway"),
+          inherit.aes = FALSE,
+          color = "black",
+          size = 2 #.4
+          ,alpha = .8) +
+  theme_void() +
+  labs(title = apt_icao)
+
+fn <- paste(apt_icao, ".png", sep = "")
+ggsave(filename = fn, path = "data-ad-charts")
+
+```
+
+
+
+```{r}
+# bboxfinder.com LEMD lng/lat
+bb_lonlat <- c(-3.603793,40.449028,-3.519997,40.546982)
+apt_icao  <- "LEMD"
+apt_name  <- "Madrid Baraja Rudolfo Suarez"
+
+q <- opq(bbox = bb_lonlat) %>% 
+  add_osm_feature(
+    key = "aeroway"
+    ,value =c("aerodrome", "apron", "control_tower", "gate", "hangar"
+              ,"helipad", "runway", "taxiway", "terminal") ) %>% 
+  osmdata_sf() %>%
+  unique_osmdata()
+
+ggplot() +
+  geom_sf(data = q$osm_polygons
+          ,inherit.aes = FALSE
+          ,color = "lightblue"
+          #,fill  = "lightblue"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway != "runway")
+          , color = "grey"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway == "runway"),
+          inherit.aes = FALSE,
+          color = "black",
+          size = 2 #.4
+          ,alpha = .8) +
+  theme_void() +
+  labs(title = apt_icao)
+
+fn <- paste(apt_icao, ".png", sep = "")
+ggsave(filename = fn, path = "data-ad-charts")
+```
+
+
+
+
+
+
+```{r}
+osm_apt <- function(.bb_lonlat, .title = NULL, .add_north = TRUE){
+
+  q <- opq(bbox = .bb_lonlat) %>% 
+  add_osm_feature(
+    key = "aeroway"
+    ,value =c("aerodrome", "apron", "control_tower", "gate", "hangar"
+              ,"helipad", "runway", "taxiway", "terminal") ) %>% 
+  osmdata_sf() %>%
+  unique_osmdata()
+
+gg<-ggplot() +
+  geom_sf(data = q$osm_polygons
+          ,inherit.aes = FALSE
+          ,color = "lightblue"
+          #,fill  = "lightblue"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway != "runway")
+          , color = "grey"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway == "runway"),
+          inherit.aes = FALSE,
+          color = "black",
+          size = 2 #.4
+          ,alpha = .8) +
+  theme_void()
+
+# if(!is.null(.title)){
+#   gg <- gg + labs(title = .title)
+# }
+# add north arrow with ggspatial
+ if(!is.null(.add_north)){
+   gg <- gg +
+     ggspatial::annotation_north_arrow(height = unit(0.7, "cm"), width = unit(0.7, "cm"))
+ }
+# return aerodrome layout map
+  return(gg)  
+}
+
+save_osm_apt <- function(.gg, .apt_icao, .format = ".png", .dir="./data-ad-charts/"){
+  #filename
+  fn <- paste(.apt_icao, .format, sep = "")
+  # save plot
+  ggsave(plot = .gg, filename = fn, path = .dir)
+}
+
+db_apt_chart <- function(.apt_icao, .bb_lonlat, .add_north = TRUE, show = TRUE, ...){
+  message(paste0("aerodrome layout plot for ", .apt_icao))
+  apt_plot <- osm_apt(.bb_lonlat, .add_north)
+  save_osm_apt(apt_plot, .apt_icao)
+  if(show){print(apt_plot)}
+}
+```
+
+```{r}
+# bboxfinder.com EHAM lng/lat
+bb_lonlat <- c(4.703521,52.279948,4.816517,52.368546)
+apt_icao  <- "EHAM"
+apt_name  <- "Amsterdam Schiphol"
+
+eham <- osm_apt(bb_lonlat, .add_north = TRUE)
+# rotates, but it is unclear to me how to identify the best rotated "projection", i.e. crs:
+# eham + coord_sf(crs = 3338)
+save_osm_apt(eham, apt_icao)
+eham
+
+# maximise plotting area == set plot.margin to min ==> check, if titles and axis!
+eham + theme(plot.background = element_rect(fill = "darkseagreen"), plot.margin = unit(c(-0.5,-0.4,-0.6,-0.4), "cm"))
+```
+
+```{r}
+# bboxfinder.com EDDF lng/lat
+bb_lonlat <- c(8.486218,49.991121,8.604321,50.054538)
+apt_icao  <- "EDDF"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# bboxfinder.com EDDM lng/lat
+bb_lonlat <- c(11.734463,48.335210,11.837803,48.373311)
+apt_icao  <- "EDDM"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# bboxfinder.com EDDK
+bb_lonlat <- c(7.099262,50.844941,7.183033,50.890756)
+apt_icao  <- "EDDK"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+
+
+```{r}
+# bboxfinder.com LFPG lng/lat
+bb_lonlat <- c(2.480164,48.979000,2.655258,49.034177)
+apt_icao  <- "LFPG"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# bboxfinder.com LIRF lng/lat
+bb_lonlat <- c(12.205605,41.771517,12.285942,41.854168)
+apt_icao  <- "LIRF"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# bboxfinder.com LEMD lng/lat
+bb_lonlat <- c(-3.612373,40.447313,-3.521393,40.546000)
+apt_icao  <- "LEMD"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# bboxfinder.com LSZH lng/lat
+bb_lonlat <- c(8.519966,47.437307,8.581593,47.488255)
+apt_icao  <- "LSZH"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# bboxfinder.com EIDW lng/lat
+bb_lonlat <- c(-6.309792,53.416387,-6.228939,53.444308)
+apt_icao  <- "EIDW"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# bboxfinder.com EGGK lng/lat
+bb_lonlat <- c(-0.223915,51.141733,-0.155851,51.165738)
+apt_icao  <- "EGKK"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# EGLL
+bb_lonlat <- c(-0.501251,51.454987,-0.410099,51.480538)
+apt_icao  <- "EGLL"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+
+```{r}
+# bboxfinder.com WSSS lng/lat
+bb_lonlat <- c(103.963623,1.310692,104.037609,1.394268)
+apt_icao  <- "WSSS"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# bboxfinder.com LGAV lng/lat
+bb_lonlat <- c(23.911370,37.910234,23.989497,37.964916)
+apt_icao  <- "LGAV"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+
+## Start to industrialise
+
+```{r}
+# bboxfinder.com EKCH lng/lat
+bb_lonlat <- c(12.596169,55.585234,12.681484,55.633229)
+apt_icao  <- "EKCH"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+```{r}
+# bboxfinder.com ELLX lng/lat
+bb_lonlat <- c(6.179638,49.613101,6.243238,49.640456)
+apt_icao  <- "ELLX"
+
+db_apt_chart(apt_icao, bb_lonlat)
+```
+
+
+```{r}
+apdf_apts <- readxl::read_excel("./data-ad-charts/APT_BBOX.xlsx", sheet = "Monitored")
+
+layout_done <- list.files(path = "./data-ad-charts/", pattern = "[A-Z]{4}\\.png") %>%
+  strtrim(width = 4)
+
+todo_apts      <- apdf_apts %>% filter(!AIRPORT %in% layout_done) %>%
+  select(AIRPORT, BBOX)
+
+bb_coerce <- function(.bb_lnglat_string){
+  bb <- strsplit(.bb_lnglat_string, ",")
+  bb <- unlist(bb)
+  bb <- as.numeric(bb)
+  return(bb)
+}
+
+# rm(apt_icao)
+
+# loop
+# db_apt_chart(apt_icao, bb_lonlat,.add_north = TRUE)
+# lnglats %>% purrr::pmap(.f=~print(paste0("APT: ", ..1, "BBOX: ", ..2)) )
+todo_apts %>% purrr::pmap(.f=~db_apt_chart(.apt_icao = ..1, .bb_lonlat = bb_coerce(..2)))
+```
+
+this worked: db_apt_chart("EDDH", c(9.955158,53.613081,10.011978,53.659594
++ ),.add_north = TRUE)
+check how BBOX is provided might not be a vector
+
+## Studying Extracting Information from the OSM Data Query
+
+```{r}
+# bboxfinder.com EBBR lng/lat
+bb_lonlat <- c(4.438580,50.883263,4.529560,50.920819)
+apt_icao  <- "EBBR"
+apt_name  <- "Brussels Airport"
+
+q <- opq(bbox = bb_lonlat) %>% 
+  add_osm_feature(
+    key = "aeroway"
+    ,value =c("aerodrome", "apron", "control_tower", "gate", "hangar"
+              ,"helipad", "runway", "taxiway", "terminal") ) %>% 
+  osmdata_sf() # %>%   unique_osmdata()
+
+(  ebbr <- db_apt_chart(apt_icao, bb_lonlat)  )
+```
+
+querried OSM data are stored in object q.
+
+```{r}
+q
+```
+
+```{r}
+ebbr_pts <- q$osm_points
+ebbr_pts
+```
+
+The sf-collection osm_points comes with further slots: i.e. osm_id, aeroway
+
+```{r}
+table(ebbr_pts$aeroway, useNA = "ifany")
+```
+
+The point-collection comprises 70 (named) gates.
+
+```{r}
+pts <- ebbr_pts %>% select(aeroway, ref)
+pts
+```
+
+```{r}
+table(pts$ref, useNA = "ifany")
+```
+
+The ref-slot seems to comprise the gate identifier.
+
+```{r}
+ebbr_gates <- ebbr_pts %>% select(aeroway, ref, geometry) %>%
+  filter(! is.na(ref))
+
+ebbr_gates
+```
+
+```{r}
+ebbr + geom_sf(data = ebbr_gates # %>% filter(aeroway == "runway"),
+               , colour = "red"
+               , label)
+```
+
+## Add North Arrow
+
+```{r}
+# bboxfinder.com EDDS lng/lat
+bb_lonlat <- c(9.182562,48.679163,9.251656,48.698644)
+apt_icao  <- "EDDS"
+
+# bboxfinder.com LEMD lng/lat
+bb_lonlat <- c(-3.612373,40.447313,-3.521393,40.546000)
+apt_icao  <- "LEMD"
+
+osm_apt(bb_lonlat) +
+  ggspatial::annotation_north_arrow(height = unit(0.7, "cm"), width = unit(0.7, "cm"))
+```
+
+## Trouble Shooting 
+
+### EYVI
+
+```{r}
+# bboxfinder.com EYVI lng/lat
+bb_lonlat <- c(25.269670,54.615076,25.305119,54.655414)
+apt_icao  <- "EYVI"
+
+# bboxfinder.com EDDS lng/lat
+#bb_lonlat <- c(9.182562,48.679163,9.251656,48.698644)
+
+# bboxfinder.com LEMD lng/lat
+#bb_lonlat <- c(-3.612373,40.447313,-3.521393,40.546000)
+#apt_icao  <- "LEMD"
+
+#xx <- osm_apt(bb_lonlat, .add_north = TRUE)
+#db_apt_chart(apt_icao, bb_lonlat)
+
+q <- opq(bbox = bb_lonlat) %>% 
+  add_osm_feature(
+    key = "aeroway"
+    ,value =c("aerodrome", "apron", "control_tower", "gate", "hangar"
+              ,"helipad", "runway", "taxiway", "terminal") ) %>% 
+  osmdata_sf() %>%
+  unique_osmdata()
+
+gg <- ggplot() +
+  geom_sf(data = q$osm_polygons
+          ,inherit.aes = FALSE, color = "lightblue"
+          #,fill  = "lightblue"
+          ) +
+  geom_sf(data = q$osm_multipolygons
+          ,inherit.aes = FALSE, color = "lightblue"
+          #,fill  = "lightblue"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway != "runway")
+          , color = "grey"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway == "runway"),
+          inherit.aes = FALSE,
+          color = "black",
+          size = 2 #.4
+          ,alpha = .8) +
+  geom_sf(data = q$osm_polygons %>% filter(aeroway == "runway"),
+          inherit.aes = FALSE, fill = "black"
+          #, color = "black", size = 2 #.4
+          ,alpha = .8) +
+  theme_void()
+gg +
+     ggspatial::annotation_north_arrow(height = unit(0.7, "cm"), width = unit(0.7, "cm"))
+
+save_osm_apt(
+   .gg = gg +
+     ggspatial::annotation_north_arrow(height = unit(0.7, "cm"), width = unit(0.7, "cm"))
+  ,.apt_icao = "EYVI")
+```
+
+### EDDR
+
+```{r}
+# EDDR bounding box
+bb_lonlat <- c(7.092190,49.212860,7.126050,49.220849)
+apt_icao  <- "EDDR"
+
+q <- opq(bbox = bb_lonlat) %>% 
+  add_osm_feature(
+    key = "aeroway"
+    ,value =c("aerodrome", "apron", "control_tower", "gate", "hangar"
+              ,"helipad", "runway", "taxiway", "terminal") ) %>% 
+  osmdata_sf() %>%
+  unique_osmdata()
+
+eddr <- osm_apt(bb_lonlat, .add_north = TRUE) 
+eddr <- eddr + 
+  geom_sf(data = q$osm_polygons %>% filter(aeroway == "runway")
+          ,fill = "black")
+#db_apt_chart(apt_icao, bb_lonlat)
+
+
+
+gg <- ggplot() +
+  geom_sf(data = q$osm_polygons
+          ,inherit.aes = FALSE, color = "lightblue"
+          #,fill  = "lightblue"
+          ) +
+  geom_sf(data = q$osm_multipolygons
+          ,inherit.aes = FALSE, color = "lightblue"
+          #,fill  = "lightblue"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway != "runway")
+          , color = "grey"
+          ) +
+  geom_sf(data = q$osm_lines %>% filter(aeroway == "runway"),
+          inherit.aes = FALSE,
+          color = "black",
+          size = 2 #.4
+          ,alpha = .8) +
+  geom_sf(data = q$osm_polygons %>% filter(aeroway == "runway"),
+          inherit.aes = FALSE, fill = "black"
+          #, color = "black", size = 2 #.4
+          ,alpha = .8) +
+  theme_void()
+gg +
+     ggspatial::annotation_north_arrow(height = unit(0.7, "cm"), width = unit(0.7, "cm"))
+
+save_osm_apt(
+   .gg = gg +
+     ggspatial::annotation_north_arrow(height = unit(0.7, "cm"), width = unit(0.7, "cm"))
+  ,.apt_icao = "EYVI")
+```
+
