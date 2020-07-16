@@ -27,3 +27,5 @@ vignettes/*.pdf
 *.knit.md
 # R Environment Variables
 .Renviron
+# keep data locally only
+/data/
