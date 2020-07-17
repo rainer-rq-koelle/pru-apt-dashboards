@@ -1,0 +1,43 @@
+---
+title: "Dashboard Airport Index"
+author: "RQ"
+date: "17/07/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(dplyr)
+```
+
+```{r, message = FALSE}
+info <- read_csv2("./data/STAT_AIRPORT_INFO.csv")
+
+# trim whitespace surrounding hyphens in some names
+info <- info %>% 
+  mutate(APT_NAME = str_replace(APT_NAME," - ", "-"))
+```
+
+For a few airports there is something dodgy in the data.
+The dashboard rendering throws an error. 
+The following airports are currently "black-listed" resulting in a non-flag.
+
+```{r}
+nope <- c("EGNT","ENBR","ENVA","ENZV","GCFV","LCLK","LFBO","LFML","LIMF","WSSS") 
+apts <- list.files("./data-ad-charts/", pattern = "[A-Z]{4}\\.png") %>% strtrim(4)
+apts <- setdiff(apts, nope)
+length(apts)
+```
+```{r}
+info <- info %>% 
+  select(APT_ICAO, APT_NAME) %>%
+  filter(APT_ICAO %in% apts) %>%
+  mutate(DASHBOARD = TRUE)
+```
+
+save out dashboard list
+```{r}
+write_csv(info, path = "apt-index-list.csv")
+```
+

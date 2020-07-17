@@ -26,17 +26,15 @@ library(sparkline)
 
 min_year <- 2016 # by definition 5 years, i.e. 2016-2020
 
-# REMOVE WHEN DEPLOYED -------------------------------------------------
+# PICK AIRPORTS -------------------------------------------------
 # TO LIMIT TEST LOAD SUBSET FOR "TEST" AIRPORTS
-# To-Do: deployed version should use airport list, etc or be derived from ids
-# the list is used as an iterator for the render loop below
-#apts   <- c(, "EDDF", "EIDW")
 apts <- c("EGLL","EBBR", "LEMD")
-# version - counter increased to 05 (including Sara's comments) & discussion with
-# Enrico --> deactivated as we move towards deployment. version<- "05"
-## ------------------------------------------------ REMOVE WHEN DEPLOYED
-#
-#
+# TO-DO TROUBLE SHOOTING ----------------------------------------
+# THE FOLLOWING AIRPORT DBs DO NOT RENDER - CHECK WHAT THROWS ERRORS
+# nope <- c("EGNT","ENBR","ENVA","ENZV","GCFV","LCLK","LFBO","LFML","LIMF","WSSS") 
+# apts <- list.files("./data-ad-charts/", pattern = "[A-Z]{4}\\.png") %>% strtrim(4)
+# apts <- setdiff(apts, nope)
+
 ## ------------ READ IN DATA TABLES FROM DOWNLOAD POINT ------------------
 #
 # Thierry's dashboard table
