@@ -211,7 +211,7 @@ fig1 <- params$covid %>%
   add_lines(x=~DAY, y=~FLTS_2020, name = "Movements 2020") %>%
   add_lines(x=~DAY, y=~FLTS_2019, name = "Movements 2019"
             , line = list(dash = "dot", color = "red")) %>%
-  layout(yaxis = list(title = "movements", tickformat: ',.0%',))
+  layout(yaxis = list(title = "movements"))
 
 fig2 <- params$covid %>% 
   plot_ly() %>%
@@ -219,7 +219,7 @@ fig2 <- params$covid %>%
   layout( xaxis = list(title = "") 
          ,yaxis = list(title = "% change from 2019"
                       ,titlefont = list(size = 11)
-                      ,hoverformat = ".2f"))
+                      ,tickformat = "%"))
 
 fig <- subplot(fig1, fig2, nrows=2, shareX = TRUE) %>%
   layout( hovermode = "x unified") %>%
@@ -366,10 +366,11 @@ mvts_pm %>%
            )
 ```
 
-### Hourly Throughput
+### Average Weekday Hourly Throughput
 
 ```{r}
-thru <- params$thru
+thru <- params$thru %>% 
+  filter(TIME >= hm("05:55"), TIME <= hm("23:05"))
 
 thru_yr <- unique(thru$YEAR)
 thru_mth<- unique(thru$MONTH_NUM)
@@ -385,7 +386,7 @@ thru <- thru %>% bind_rows(thru_tot) %>%
 # TIME seems to be turned to string!!!!, i.e. time formatting does not work!!!
 
 #xax = list(title= "", type = 'time', tickformat = "%H%M") # 
-xax = list( title="", type = "category" ,range = c("05:45","23:15")) #
+xax = list( title="", type = "category" ,range = c("06:00","23:00")) #
 yax = list( title= 'Average throughput [flights/hour]'
            ,titlefont = list(size = 11)
            ,hoverformat = ".2f")
@@ -1299,7 +1300,7 @@ p
 
 ### Pre-Departure Delay {data-width=350}
 
-```{r, out.width='200pt'}
+```{}
 knitr::include_graphics("./figures/atc_pre-departure_delay.png")
 ```
 

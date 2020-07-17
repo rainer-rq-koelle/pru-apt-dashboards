@@ -45,18 +45,19 @@ nms <- nms[-1,]
 
 ds <- ds %>% rename(
    "ARP_NAME" = "Entity", "WEEK" = "Week", "DAY" = "Day"
-  ,"FLIGHTS_2019" = "Flights 2019", "FLIGHTS_2020" = "Flights 2020"
+  ,"FLTS_2019" = "Flights 2019", "FLTS_2020" = "Flights 2020"
   ,"VAR_DLY" = "Daily Variation", "VAR_WKLY" = "Weekly Variation"
   ,"MOV_AVG_WK" = "Weekly Moving Average","DAY2019" = "...11")
 
 # merge ICAO with ds
-ds <- ds %>% left_join(nms, by = "ARP_NAME" )
+ds <- ds %>% left_join(nms, by = "ARP_NAME") %>%
+  rename(APT_ICAO = ARP_CODE)
 ```
 
 Save-out COVID data for front-page     
 filtering for dashboard done by trim_covid() function
 
 ```{r}
-write_csv(ds, "./data/COVID-AIRPORT.csv")
+write_csv(ds, "./data/COVID_AIRPORT.csv")
 ```
 

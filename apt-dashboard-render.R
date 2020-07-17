@@ -13,7 +13,7 @@
 # 2. reduce data load by cleaning the input data tables
 #    note: as the dashboard is under development this will be a clean-up task
 #    once it is known what the "minimal needed payload data" is
-# 3. post-processing: rendered boards are stored as html-pages in the boards
+# 3. post-processing: rendered boards are stored as html-pages in the docs
 #    sub-folder
 #
 # load required packages
@@ -117,7 +117,7 @@ turn_df <- readr::read_csv2("./data/STAT_AIRPORT_TURN_AROUND.csv") %>%
   mutate(AVG_ATTT = TOT_ACTT_MIN / N, AVG_STTT = TOT_SDTT_MIN / N) %>%
   select(APT_ICAO, YEAR, MONTH = MONTH_NUM, AC_CLASS, N, AVG_ATTT, AVG_STTT)
 
-punc_df <-  readr::read_csv("./data-test/STAT_AIRPORT_DATA_PUNC.csv") %>% rename(APT_ICAO = APT)
+# punc_df <-  readr::read_csv("./data-test/STAT_AIRPORT_DATA_PUNC.csv") %>% rename(APT_ICAO = APT)
 
 covid_df <- readr::read_csv("./data/COVID_AIRPORT.csv")
 
@@ -247,7 +247,7 @@ pack_thru <- function(.df, .apt){
 apts %>%
   purrr::walk(
     .f=~rmarkdown::render(
-      input  = "apt_dashboard_05.Rmd"   # master flexdashboard Rmd
+      input  = "apt-dashboard.Rmd"   # master flexdashboard Rmd
       , params = list( #------ start params -------------------------
                        icao  = .
                        ,iata  = pick_apt_iata(   db_df ,   .apt = .)   # merge iata code with other source
@@ -266,13 +266,12 @@ apts %>%
                        ,txit  = filter_df_by_apt(txit_df,  .apt = .)
                        ,pddly = filter_df_by_apt(pddly_df, .apt = .)
                        ,turn  = filter_df_by_apt(turn_df,  .apt = .)
-                       ,punc  = filter_df_by_apt(punc_df,  .apt = .)
+                      # ,punc  = filter_df_by_apt(punc_df,  .apt = .)
       ) #----------------- end params ---------------------------
       # output_dir DEACTIVATED and included in output_file name
-      # brittle as reported in stackoverflow
-      #  , output_dir = "./boards"
-      , output_file = paste0("./boards/", ., ".html")
-      #, output_file = paste0("./docs/", ., ".html")
+      # brittle as reported in stackoverflow #  , output_dir = "./boards"
+      #, output_file = paste0("./boards/", ., ".html")
+      , output_file = paste0("./docs/", ., ".html")
     )
   )
 
