@@ -8,7 +8,10 @@
 #
 # To-Do
 # 1. processing pipeline read/extract data from PRISME to remove by hand download
-# 1a. download data from blog portal repo:
+# 1a.download prepared data files from sharepoint release archive/repo
+#    https://coll.eurocontrol.int/sites/pru/dashboard/Data/ --> check for latest release
+#    traffic and atfm
+#    or download data from blog portal repo:
 #    https://github.com/euctrl-pru/portal/tree/master/static/download/xls
 # 2. reduce data load by cleaning the input data tables
 #    note: as the dashboard is under development this will be a clean-up task

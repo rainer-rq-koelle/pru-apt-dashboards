@@ -26,7 +26,7 @@ Read in latest COVID file(s) from Muriel.
 ```{r}
 ds <- readxl::read_excel(
    path = "./data/COVID-AIRPORT.xlsx"
-  ,sheet= "DATA", range = cell_cols("O:Y"), skip = 10)
+  ,sheet= "DATA", range = cell_cols("O:X"), skip = 10)
 
 nms <- readxl::read_excel(
    path = "./data/COVID-AIRPORT.xlsx"
@@ -47,7 +47,9 @@ ds <- ds %>% rename(
    "ARP_NAME" = "Entity", "WEEK" = "Week", "DAY" = "Day"
   ,"FLTS_2019" = "Flights 2019", "FLTS_2020" = "Flights 2020"
   ,"VAR_DLY" = "Daily Variation", "VAR_WKLY" = "Weekly Variation"
-  ,"MOV_AVG_WK" = "Weekly Moving Average","DAY2019" = "...11")
+  ,"MOV_AVG_WK" = "Weekly Moving Average"
+  #,"DAY2019" = "...11"
+  )
 
 # merge ICAO with ds
 ds <- ds %>% left_join(nms, by = "ARP_NAME") %>%
