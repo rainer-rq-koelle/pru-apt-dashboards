@@ -31,7 +31,7 @@ length(apts)
 ```
 ```{r}
 info <- info %>% 
-  select(APT_ICAO, APT_NAME) %>%
+  select(APT_ICAO, APT_COUNTRY, APT_NAME) %>%
   filter(APT_ICAO %in% apts) %>%
   mutate(DASHBOARD = TRUE)
 ```
