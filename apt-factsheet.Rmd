@@ -1,0 +1,1140 @@
+---
+params:
+  icao: "XXXX"
+  iata: "YYY"
+  name: "airport name"
+  state: "state name"
+  config: !r mtcars
+  ldgsum: !r mtcars
+  latest: !r mtcars
+  covid: !r mtcars
+  rwy: !r mtcars
+  tfc: !r mtcars
+  thru: !r mtcars
+  atfm: !r mtcars
+  slot: !r mtcars
+  asma: !r mtcars
+  txot: !r mtcars
+  txit: !r mtcars
+  pddly: !r mtcars
+  turn: !r mtcars
+  punc: !r mtcars
+geometry: "left=1.5cm,right=1.5cm,top=2cm,bottom=1.5cm"
+output: 
+  pdf_document:
+#    keep_tex: true
+## Sara requesting to change font for Factsheet
+## https://community.rstudio.com/t/custom-fonts-in-rmarkdown-pdf/2098 - c.f. also below
+    latex_engine: xelatex
+
+# https://stackoverflow.com/questions/46027246/in-r-markdown-create-header-footer-on-every-page-regardless-of-output-type-pdf
+header-includes:
+  - \usepackage{fancyhdr}         # add \thispagestyle{fancy} after YAML to force layout from 1st page!
+  - \pagestyle{fancy}
+  - \fancyhead[L]{AIRPORT PERFORMANCE FACTSHEET}
+  - \fancyhead[R]{`r params$name` (`r params$icao`)}
+  - \fancyfoot[LE,RO]{{\textcopyright}  EUROCONTROL/PRU}
+## See: https://stackoverflow.com/questions/25849814/rstudio-rmarkdown-both-portrait-and-landscape-layout-in-a-single-pdf/27334272#27334272
+  - \usepackage{multicol}
+  - \newcommand{\btwocol}{\begin{multicols}{2}}
+  - \newcommand{\etwocol}{\end{multicols}}
+## Sara requesting to change font for Factsheet
+## https://community.rstudio.com/t/custom-fonts-in-rmarkdown-pdf/2098
+  - \usepackage{fontspec}
+  - \setmainfont{Roboto}
+---
+
+\thispagestyle{fancy}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache = T, messages = FALSE, warning = FALSE) # suppress printing of chunks
+options(tinytex.verbose = TRUE)
+library(dplyr)
+library(ggplot2)
+library(scales)   # to manage ggplot scale / non-scientific notation
+library(egg)
+library(patchwork)
+library(gridExtra)
+library(kableExtra)
+library(magick)
+```
+```{r defs}
+month_lbls <- c(  "Jan", "Feb", "Mar", "Apr", "May", "Jun"
+                , "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+month_num_c<- c("01","02","03","04","05","06","07","08","09","10","11","12")
+month_lmts <- c(1,2,3,4,5,6,7,8,9,10,11,12)
+```
+
+<!-- # 
+dark blue, light blue   
+scale_fill_manual(values = c("#ff3366","#ff33cc" ) ) 
+
+online map color picker
+http://colorbrewer2.org/#type=sequential&scheme=BuGn&n=3
+
+w3 color picker
+https://www.w3schools.com/colors/colors_picker.asp
+-->
+
+
+### Overview
+
+\btwocol
+
+```{r overview, out.width="100%"}
+#ad_chart <- paste("data-ad-charts/", params$icao, ".png", sep="")
+#knitr::include_graphics(ad_chart)
+filename <- paste("data-ad-charts/", params$icao, ".png", sep="") 
+ad_chart <- magick::image_read(filename)
+if(params$icao %in% c("EHAM", "LEMD", "LSZH")){
+  angle <- 300
+  ad_chart <- ad_chart %>% magick::image_rotate(angle)
+}
+ad_chart %>% image_trim()
+```
+
+\columnbreak
+
+airport: `r params$icao`   
+iata: `r params$iata`    
+name: `r params$name`    
+state: `r params$state`  
+
+```{r rwy-config, comment=NA}
+params$config %>%
+  select(CONFIGURATION, SHARE_PCT) %>%
+  mutate( SHARE_PCT = round(100 * SHARE_PCT)
+         ,SHARE_PCT = paste0(SHARE_PCT, "%")) %>%
+  knitr::kable( "latex" #, booktabs = TRUE,
+    ,col.names = c("runway configurations in 2019", "")
+    )
+#%>%
+#  kable_styling( full_width = F, position = "left") %>%
+#  sub("\\\\toprule", "", .) %>%
+#  sub("\\\\bottomrule", "", .)
+
+#%>% 
+#  kable_styling(latex_options = "striped")
+#
+#config <- params$config %>% 
+#  mutate( SHARE_STR = round(100 * SHARE_PCT)
+#         ,STRING    = paste(CONFIGURATION, SHARE_STR, sep = "   ") 
+#         ,STRING    = paste("* ", STRING, "%")) %>% 
+#  pull(STRING)
+#writeLines(config)
+```
+
+>Only configurations with a minimum of 3% 
+>share are shown.
+
+\etwocol
+
+<!-- ## COVID AND SUMMARY --------------------------------->
+
+\btwocol
+
+### Summary 
+
+```{r}
+p <- ggplot(mtcars[1:10, c('mpg', 'disp')]) +
+  geom_point(aes(x = mpg, y = disp))
+
+#patchwork   
+patch <- p + gridExtra::tableGrob(mtcars[1:10, c('mpg', 'disp')])
+patch
+```
+
+
+\columnbreak
+
+### COVID19 Snapshot Traffic Evolution (Movements and Percentage Change 2020 vs 2019)
+
+```{r covid-snapshot, results='asis'}
+if(nrow(params$covid) < 1){
+  cat("<p><b>COVID19 traffic evolution for this airport under development!</b>")
+}else{
+  
+fig1 <- params$covid %>% 
+  ggplot() +
+    geom_line(mapping = aes(x = DAY, y = FLTS_2020), colour = "blue") + 
+    geom_line(mapping = aes(x = DAY, y = FLTS_2019), linetype = "dotted", colour = "red") +
+    theme_minimal() +
+    labs(x = NULL, y = "movements")
+  
+
+fig2 <- params$covid %>% 
+  ggplot() +
+    geom_line(mapping = aes(x = DAY, y = MOV_AVG_WK), colour = "green") +
+  scale_y_continuous(labels = percent) +
+    theme_minimal() +
+  labs(x = NULL, y = "percentage change")
+
+fig <- fig1 / fig2
+fig
+}
+```
+
+\etwocol
+
+<!-- ## Traffic ------------------------------------------->
+
+\btwocol
+
+<!-- ### IFR Traffic Evolution
+after font change set to level 2     ---------------------->
+
+### IFR Traffic Evolution
+
+```{r traffic}
+# annual bar chart
+mvts_pa <- params$tfc %>% select(YEAR, FLT_TOT_1 ) %>%
+  group_by(YEAR) %>%
+  summarise(FLT_TOT = sum(FLT_TOT_1, na.rm = TRUE), .groups = "drop") %>% ungroup()
+
+mvts_pa$YTD <- mvts_pa$YEAR == max(mvts_pa$YEAR)
+
+g1 <- ggplot(data = mvts_pa, mapping = aes(x = YEAR, y = FLT_TOT, fill = YEAR
+                                           #, colour = YTD
+                                           #, size = YTD   - not clear when used and throws warning
+                                           )
+             ) +
+  geom_col(width = 0.8) + 
+  scale_y_continuous(labels = unit_format(unit="k", scale = 1e-3)) +
+  scale_fill_brewer(palette = "Blues") +
+ # scale_x_discrete(limits=mvts_pa$YEAR, breaks=mvts_pa$YEAR[seq(2016,length(mvts_pa$YEAR),by=2)]) + 
+ # scale_colour_manual(values=c(NA, "grey")) +
+ # scale_linetype_manual(values = c("blank", "dotdash")) +
+ # scale_size_manual(values = c(NA, 2)) +
+  theme_minimal() + 
+  theme(legend.position = "none"
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()) +
+  labs(x = "", y = "total IFR movements")
+
+# monthly trend
+mvts_pm <- params$tfc %>% select(YEAR, MONTH_MON, MONTH_NUM, FLT_TOT_1) %>%
+  group_by(YEAR, MONTH_MON, MONTH_NUM) %>%
+  summarise(FLT_TOT = sum(FLT_TOT_1, na.rm = TRUE), .groups = "drop") %>% ungroup() %>%
+  arrange(factor(MONTH_NUM, levels=month_num_c))
+
+## year-to-date traffic growth
+grwth_pm <- mvts_pm %>% filter(YEAR == max(YEAR))
+y0 <- grwth_pm$FLT_TOT[1]  # beginning of year, i.e. Febr ~ 28 days = small dip
+yn <- grwth_pm$FLT_TOT[  nrow(grwth_pm)] # current month flights
+mth<- grwth_pm$MONTH_NUM[nrow(grwth_pm)] # current month name
+mth_int <- sub("^0+", "",mth) # truncate leading zero
+mth_int <- as.integer(mth_int) %>% max()
+month_lbl <- month_lbls[mth_int] # current (or max supplied) month label
+grwth_ann <- paste0("year-to-date \n growth (", month_lbl,"): ", round(100*((yn-y0)/y0), 1),"%")  
+
+g2 <- ggplot(data = mvts_pm
+             , mapping = aes(x = MONTH_NUM, y = FLT_TOT, group= YEAR, colour = YEAR)) +
+  geom_line() + 
+  expand_limits(y = 0) + 
+  # MONTH_NUM is a CHARACTER !!!!
+  scale_x_discrete(labels= month_lbls) +   
+  scale_y_continuous(labels = unit_format(unit="k", scale = 1e-3)) +
+  scale_color_brewer(palette = "Blues") +
+  theme_minimal() +
+  theme( legend.position = c(0.95, 0.05), legend.justification = c("right", "bottom")
+        ,legend.title=element_blank()
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()) +
+  labs(x = "", y = "") + 
+  annotate("text", x ="02", y = 0.5 * y0, label = grwth_ann, size = 5, hjust=0)
+```
+
+```{r}
+# monthly trend
+mvts_pm <- params$tfc %>% select(YEAR, MONTH_NUM, FLT_TOT_1) %>%
+  group_by(YEAR, MONTH_NUM) %>%
+  summarise(FLT_TOT = sum(FLT_TOT_1, na.rm = TRUE), .groups = "drop")
+
+# annotation - highlight highest monthly traffic in the last years
+mvts_pm_max <- mvts_pm %>% filter(FLT_TOT == max(FLT_TOT))
+
+msg         <- paste0( "Busiest month (last 5 years): \n"
+                      ,mvts_pm_max$MONTH_NUM, "-", mvts_pm_max$YEAR
+                      ,": ", mvts_pm_max$FLT_TOT)
+
+p2 <- mvts_pm %>%
+  ggplot() + 
+  geom_line(mapping = aes(MONTH_NUM, y = FLT_TOT, group = YEAR, colour = YEAR)) + 
+  scale_x_discrete(labels = month_lbls) + 
+  theme_minimal() +
+  theme( legend.position = c(0.95, 0.05), legend.justification = c("right", "bottom")
+           ,legend.title=element_blank()
+            # remove the vertical grid lines
+            ,panel.grid.major.x = element_blank()) +
+  labs(x = "", y = "") + 
+ # annotate("segment", arrow = arrow()
+#           , x = "04", xend = mvts_pm_max$MONTH_NUM
+#           , y = mvts_pm_max$FLT_TOT - 2000,yend = mvts_pm_max$FLT_TOT
+#           , alpha = .5) +
+ # scale_y_continuous(expand = expand_scale(mult = c(0, 0.3))) +
+  annotate( geom = "text", x = mvts_pm_max$MONTH_NUM, y = mvts_pm_max$FLT_TOT + 2000
+           ,label = msg, hjust = "left")
+```
+```{r traffic-vis}
+# patchwork
+g1 + p2 + 
+  plot_layout(widths = c(1, 3))
+```
+
+\columnbreak
+
+### Average Hourly Throughput
+
+```{r hourlythroughput, eval=FALSE}
+# forcing hour breaks does not work with "time"
+# https://stackoverflow.com/questions/50568227/set-interval-between-breaks-on-time-axis
+# thus we convert "time" back to "datetime" and apply scales::date_breaks() in ggplot
+
+thru <- params$thru %>% 
+  filter(YEAR == max(YEAR)) %>% 
+  filter(MONTH == max(MONTH)) %>% 
+  select(YEAR, MONTH, TIME, N_BIN_AVG, SRC_PHASE)
+
+thru_tot <- thru %>% 
+  group_by(TIME) %>% 
+  summarise(N_BIN_AVG = sum(N_BIN_AVG, na.rm = TRUE), SRC_PHASE = "TOT", .groups = "drop")
+
+thru <- bind_rows(thru, thru_tot) %>% 
+  mutate(TIME2 = paste(today(), TIME) %>% as_datetime())  # coerce date for scale
+
+# influence margins
+y_max  <- max(thru$N_BIN_AVG) + 10
+my_x   <- min(thru$TIME2)
+
+g_mnth <- thru$MONTH[1]
+g_yr   <- thru$YEAR[1]
+g_ann  <- paste("average hourly throughput for ", month_lbls[g_mnth]," ", g_yr, sep="")
+
+thru_max <- ceiling(  max(thru$N_BIN_AVG[thru$SRC_PHASE == "TOT"])  )
+g_ann2 <- paste0("maximum throughput: ", thru_max, sep="")
+
+g1 <- ggplot(data = thru, mapping = aes(x = TIME2, y = N_BIN_AVG, group = SRC_PHASE, colour = SRC_PHASE))+
+  geom_path() +
+  annotate("text", x = my_x, y = y_max - 5, label = g_ann, hjust = 0) +
+  annotate("text", x = my_x + (2 * 3600), y = 8, label = g_ann2, size = 5, hjust = 0) +
+  scale_x_datetime(breaks = scales::date_breaks("1 hour"), date_labels = "%H") +
+  labs(x = "", y = "average hourly movement") + 
+ # ylim(0, y_max) +
+  # --------------------------    red       blue      space cadet
+  scale_color_manual(values = c("#ff4d4d", "#3399ff", "#102E4A")
+                    ,labels= c("arrivals","departures", "total")) +
+  theme_minimal() +
+  theme(
+    # remove the vertical grid lines
+       panel.grid.major.x = element_blank()
+      ,panel.grid.minor.x = element_blank()
+    # remove legend title
+      ,legend.title = element_blank()
+    # position legend
+      ,legend.position = c(0.95, 0.05)
+      ,legend.justification = c("right", "bottom")
+       )
+```
+
+```{r hourlythroughputvis}
+thru <- params$thru %>% 
+  filter(TIME >= hm("05:55"), TIME <= hm("23:05"))
+
+thru_yr <- unique(thru$YEAR)
+thru_mth<- unique(thru$MONTH_NUM)
+ 
+thru_tot <- thru %>% group_by(TIME) %>% 
+  summarise(ROLLING_HOUR_MVT = sum(ROLLING_HOUR_MVT, na.rm = TRUE), .groups = "drop") %>% 
+  mutate(PHASE="TOT")
+
+thru <- thru %>% bind_rows(thru_tot)
+
+msg = paste0("Average 15-min rolling hour",
+             "\n throughput-weekdays month ", month_lbls[thru_mth])
+
+if(max(thru$ROLLING_HOUR_MVT) <= 20){
+  msg_y <- 1.2 * max(thru$ROLLING_HOUR_MVT)
+}else{
+  msg_y <- 0.1 * max(thru$ROLLING_HOUR_MVT)
+}
+
+# msg_x needs to be a datetime with trick below
+# to center (06:00-23:00), we pick 14:00 hrs
+msg_x = paste(today(), "14:00:00") %>% as_datetime()
+
+# axis formatting is a bit tricky as time-objects are durations!
+# we therefore create a datetime by pasting today() to time
+thru <- thru %>% 
+  mutate(TIME2 = paste(today(), TIME) %>% as_datetime()) 
+
+thru %>% 
+  ggplot() + 
+  geom_line(mapping = aes(x = TIME2, y = ROLLING_HOUR_MVT, colour = PHASE)) +
+  annotate(geom = "text", label = msg
+           ,x = msg_x, y = msg_y
+           ,hjust = 0.5) +
+  scale_x_datetime(breaks = scales::date_breaks("120 mins"), date_labels = "%H:%M") +
+  theme_minimal() +
+  theme( legend.position = c(0.85, 0.85) #,       legend.justification = c("right", "top")
+        ,legend.title=element_blank()
+        # remove the vertical grid lines
+        ,panel.grid.major.x = element_blank()
+        ) +
+  labs(x = NULL, y = "average hourly throughput [flights/hour]")
+```
+
+\etwocol  
+
+<!-- no top-level heading ## Air Traffic Flow Management --------------------->
+
+\btwocol
+
+### Arrival ATFM Delay
+
+```{r ATFM}
+# annual bar chart
+atfm_pa <- params$atfm %>% 
+  select(YEAR, FLT_ARR_1, DLY_APT_ARR_1, AD_DISRUPTION, AD_CAPACITY, AD_WEATHER
+         , AD_DISRUPTION_ATC, AD_CAPACITY_ATC, AD_STAFFING_ATC, AD_EVENTS
+         ) %>%
+  group_by(YEAR) %>%
+  summarise( FLT_ARR_TOT     = sum(FLT_ARR_1,     na.rm = TRUE)
+            ,DLY_APT_ARR_TOT = sum(DLY_APT_ARR_1, na.rm = TRUE)
+            ,AD_DISRUPTION   = sum(AD_DISRUPTION, na.rm = TRUE)
+            ,AD_CAPACITY     = sum(AD_CAPACITY,   na.rm = TRUE)
+            ,AD_WEATHER      = sum(AD_WEATHER,    na.rm = TRUE)
+            ,AD_DISRUPTION_ATC=sum(AD_DISRUPTION_ATC, na.rm = TRUE)
+            ,AD_CAPACITY_ATC = sum(AD_CAPACITY_ATC, na.rm = TRUE)
+            ,AD_STAFFING_ATC = sum(AD_STAFFING_ATC, na.rm = TRUE)
+            ,AD_EVENTS       = sum(AD_EVENTS,     na.rm = TRUE)
+            , .groups = "drop") %>% ungroup() %>% 
+  tidyr::pivot_longer(cols = starts_with("AD_"), names_to = "REG_REASON", values_to = "DLY") %>%
+  mutate(AVG_ARR_ATFM_DLY = DLY_APT_ARR_TOT / FLT_ARR_TOT
+         ,AVG_ARR_ATFM_REG= DLY / FLT_ARR_TOT)
+
+# colour coding
+brks2 <- c("AD_DISRUPTION", "AD_CAPACITY","AD_WEATHER","AD_DISRUPTION_ATC","AD_CAPACITY_ATC","AD_STAFFING_ATC","AD_EVENTS")
+atfm_lbl2 <- c("Disruption","Capacity", "Weather", "Disruption (ATC)", "Capacity (ATC)","Staffing (ATC)","Events")
+#https://htmlcolorcodes.com/
+atfm_col2 <- c("#FDEDEC"   # light red
+             ,"#D6EAF8"
+             ,"#707B7C" # grey
+             ,"#7DCEA0"  # green
+             ,"#2E86C1"  # blue
+             ,"#F5B041"  # organge
+             ,"#943126"  # darkred
+             )
+atfm_col <- c(
+   "#595959"    # rgb2hex(89,89,89)    # AD Events
+  ,"#B9CDE5"    # rgb2hex(185,205,229) # AD Disruption
+  ,"#E6B9B8"    # rgb2hex(230,185,184) # AD Capacity
+  ,"#9BBB59"    # rgb2hex(155,187,89)  # AD Weather
+  ,"#4F81BD"    # rgb2hex(79,129,189)  # AD Disruption ATC
+  ,"#F79646"    # rgb2hex(247,150,70)  # Staffing ATC
+  ,"#C0504D"    # rgb2hex(192,80,77)   # AD Capacity ATC
+)
+brks <- c("AD_EVENTS","AD_DISRUPTION","AD_CAPACITY","AD_WEATHER","AD_DISRUPTION_ATC","AD_STAFFING_ATC","AD_CAPACITY_ATC")
+atfm_lbl <- c("Events","Disruption","Capacity", "Weather", "Disruption (ATC)","Staffing (ATC)", "Capacity (ATC)")
+
+## prepare message for cumulative ATFM delay ------------------------------
+atfm_pa_thisyear <- atfm_pa %>% filter(YEAR == max(YEAR)) %>%
+  summarise( YEAR = unique(YEAR)
+            ,TOT_AVG_ARR_ATFM_REG = sum(AVG_ARR_ATFM_REG, na.rm = TRUE)
+            ,TOT_AVG_ARR_ATFM_REG = round(TOT_AVG_ARR_ATFM_REG,2))
+
+atfm_pa_thisyear_msg <- paste0(
+   "Cumulative ATFM in ", atfm_pa_thisyear$YEAR
+  ,"\n ", atfm_pa_thisyear$TOT_AVG_ARR_ATFM_REG, " min/arr.")
+
+## ----------------------------------------------------- end message text
+
+g1 <- ggplot(data = atfm_pa %>% filter(YEAR != lubridate::year(today()))
+             , mapping = aes(x = YEAR, y = AVG_ARR_ATFM_REG, fill = REG_REASON)) +
+  geom_col(position = "stack", width = 0.8) +
+  theme_minimal() + # scale_y_continuous(labels = scales::comma) +
+  scale_fill_manual(breaks = brks, labels = atfm_lbl, values = atfm_col) +
+  theme(legend.position = "none"
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()) +
+  labs(x = "", y = "average arrival ATFM delay [min/arrival]")
+
+# monthly trend
+atfm_pm <- params$atfm %>% 
+  filter(YEAR == max(YEAR)) %>%
+  select(YEAR, MONTH_NUM, FLT_ARR_1, DLY_APT_ARR_1, AD_DISRUPTION, AD_CAPACITY, AD_WEATHER
+         , AD_DISRUPTION_ATC, AD_CAPACITY_ATC, AD_STAFFING_ATC, AD_EVENTS
+         ) %>%
+  group_by(YEAR, MONTH_NUM) %>%
+  summarise( FLT_ARR_TOT     = sum(FLT_ARR_1,     na.rm = TRUE)
+            ,DLY_APT_ARR_TOT = sum(DLY_APT_ARR_1, na.rm = TRUE)
+            ,AD_DISRUPTION   = sum(AD_DISRUPTION, na.rm = TRUE)
+            ,AD_CAPACITY     = sum(AD_CAPACITY,   na.rm = TRUE)
+            ,AD_WEATHER      = sum(AD_WEATHER,    na.rm = TRUE)
+            ,AD_DISRUPTION_ATC=sum(AD_DISRUPTION_ATC, na.rm = TRUE)
+            ,AD_CAPACITY_ATC = sum(AD_CAPACITY_ATC, na.rm = TRUE)
+            ,AD_STAFFING_ATC = sum(AD_STAFFING_ATC, na.rm = TRUE)
+            ,AD_EVENTS       = sum(AD_EVENTS,     na.rm = TRUE)
+            , .groups = "drop") %>% ungroup() %>% 
+  tidyr::pivot_longer(cols = starts_with("AD_"), names_to = "REG_REASON", values_to = "DLY") %>%
+  mutate(AVG_ARR_ATFM_DLY = DLY_APT_ARR_TOT / FLT_ARR_TOT
+         ,AVG_ARR_ATFM_REG= DLY / FLT_ARR_TOT)
+
+g2 <- ggplot(data = atfm_pm
+             , mapping = aes(x = MONTH_NUM, y = AVG_ARR_ATFM_REG, fill = REG_REASON)) +
+  geom_col(position = "stack", width = 0.8) +
+  scale_x_discrete(labels= month_lbls, limits=c(1,2,3,4,5,6,7,8,9,10,11,12)) +
+  expand_limits(x=c(0,12)) +
+  scale_fill_manual(breaks = brks, labels = atfm_lbl, values = atfm_col) +
+  theme_minimal() +
+  theme(legend.position = "top"
+        # control legend key size
+       ,legend.key.size = unit(0.1, "cm")
+    # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+    # remove legend title
+      ,legend.title = element_blank()
+     ) + 
+  labs(x = NULL, y = NULL) +
+  annotate(geom = "text", label = atfm_pa_thisyear_msg
+          # ,x = atfm_pm$MONTH_NUM[2], y = sum(atfm_pm$AVG_ARR_ATFM_REG, na.rm = TRUE)
+          ,x = -Inf, y = Inf, hjust = 0, vjust = 1)
+```
+```{r atfmvis}
+# patchwork
+g1 + g2 + 
+  plot_layout(widths = c(1, 3))
+```
+
+\columnbreak
+
+### ATFM slot adherence
+
+```{r slot}
+# annual bar chart
+slot_pa <- params$slot %>% 
+  mutate(FLT_DEP_OUT = FLT_DEP_OUT_EARLY_1 + FLT_DEP_OUT_LATE_1) %>% 
+  select(YEAR, FLT_DEP_1, FLT_DEP_REG_1, FLT_DEP_OUT) %>% 
+  group_by(YEAR) %>% 
+  summarise(  FLT_DEP = sum(FLT_DEP_1), FLT_DEP_REG = sum(FLT_DEP_REG_1)
+            , FLT_DEP_OUT = sum(FLT_DEP_OUT)
+            , .groups = "drop") %>% 
+  ungroup() %>% 
+  mutate( FLT_DEP_REG_P = FLT_DEP_REG / FLT_DEP
+         ,FLT_DEP_OUT_P = FLT_DEP_OUT / FLT_DEP_REG) %>% 
+  tidyr::pivot_longer(cols = ends_with("_P")
+                      , names_to = "FLIGHT_GRP", values_to = "SHARE")
+
+g1 <- ggplot(data = slot_pa %>% filter(YEAR != year(today()))
+             , aes(x = YEAR, y = SHARE
+                   , fill = factor(FLIGHT_GRP, levels = c("FLT_DEP_REG_P","FLT_DEP_OUT_P"))
+                   )
+             ) + 
+  geom_col(position = "dodge", width = 0.8) +
+  scale_y_continuous(labels = scales::percent_format(accuracy=1)) +
+  # --------------------------    blue       red
+  scale_fill_manual(values = c("#3399ff","#ff4d4d")) +
+  theme_minimal() + # scale_y_continuous(labels = scales::comma) +
+  theme(legend.position = "none"
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+    # remove legend title
+    #  ,legend.title = element_blank()
+    ) +
+  labs(x = "", y = "")
+
+# monthly trend
+slot_pm <- params$slot %>% filter(YEAR == max(YEAR)) %>% 
+  mutate(FLT_DEP_OUT = FLT_DEP_OUT_EARLY_1 + FLT_DEP_OUT_LATE_1) %>% 
+  select(YEAR, MONTH_NUM, FLT_DEP_1, FLT_DEP_REG_1, FLT_DEP_OUT) %>% 
+  group_by(YEAR, MONTH_NUM) %>% 
+  summarise(  FLT_DEP = sum(FLT_DEP_1), FLT_DEP_REG = sum(FLT_DEP_REG_1)
+            , FLT_DEP_OUT = sum(FLT_DEP_OUT)
+            , .groups = "drop") 
+
+# cumulative count for message -------------------------------------
+slot_pm_cum <- slot_pm %>% group_by(YEAR) %>%
+  summarise( FLT_DEP = sum(FLT_DEP), FLT_DEP_REG = sum(FLT_DEP_REG)
+             ,FLT_DEP_OUT = sum(FLT_DEP_OUT), .groups = "drop") %>%
+  mutate( FLT_DEP_REG_P = FLT_DEP_REG / FLT_DEP
+         ,FLT_DEP_OUT_P = FLT_DEP_OUT / FLT_DEP_REG)
+
+slot_pm_cum_msg <- paste0(
+   "Cumulative year-to-month "
+  ,"\n regulated departure: ", round(100 * slot_pm_cum$FLT_DEP_REG_P), "%"
+  ,"\n outside slot window: ", round(100 * slot_pm_cum$FLT_DEP_OUT_P), "%"
+  )
+## ---------------------------------------------------- end message
+
+slot_pm <- slot_pm %>%
+  mutate( FLT_DEP_REG_P = FLT_DEP_REG / FLT_DEP
+         ,FLT_DEP_OUT_P = FLT_DEP_OUT / FLT_DEP_REG) %>% 
+  tidyr::pivot_longer(cols = ends_with("_P")
+                      , names_to = "FLIGHT_GRP", values_to = "SHARE")
+
+g2 <- ggplot(data = slot_pm
+             , mapping = aes(x = MONTH_NUM, y = SHARE
+                             , fill = factor(FLIGHT_GRP, levels = c("FLT_DEP_REG_P","FLT_DEP_OUT_P"))
+                             )
+             ) +
+  geom_col(position = "dodge", width = 0.8) +
+  scale_x_discrete(labels= month_lbls, limits=c(1,2,3,4,5,6,7,8,9,10,11,12)) +
+  expand_limits(x=c(1,12)) +
+  scale_y_continuous( labels = scales::percent_format(accuracy=1)
+                     ,expand = expansion(mult = c(0, .1))
+                     ) +
+  # --------------------------    blue       red
+  scale_fill_manual(values = c("#3399ff","#ff4d4d")
+                    ,labels= c("regulated departures","of which outside slot")
+                    ) +
+  theme_minimal() +
+  theme(legend.position = c(0.85, 0.15), legend.justification = c("right", "bottom")
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+       # remove legend title
+      ,legend.title = element_blank()
+        ) +
+  labs(x = NULL, y = NULL) +
+  annotate(geom = "text", label = slot_pm_cum_msg
+           ,x = -Inf, y = Inf, hjust = 0, vjust = 1)
+```
+```{r slotvis}
+# patchwork
+g1 + g2 + 
+  plot_layout(widths = c(1, 3))
+```
+
+\etwocol
+
+<!-- ------------------------ ASMA and TXIT ----------------------------------->
+<!-- ## << no section header -------------------->
+
+\btwocol
+
+### Average ASMA (Terminal Airspace) Times
+
+```{r asma}
+# annual bar chart
+asma_pa <- params$asma %>% select(YEAR, TIME_ASMA_ADD_2, TIME_ASMA_UNIMP_2, FLT_ASMA_UNIMP_2 ) %>%
+  group_by(YEAR) %>%
+  summarise( TOT_ADD_ASMA_TIME = sum(TIME_ASMA_ADD_2,   na.rm = TRUE)
+            ,TOT_UNIMP_TIME    = sum(TIME_ASMA_UNIMP_2, na.rm = TRUE)
+            ,TOT_FLT           = sum(FLT_ASMA_UNIMP_2,  na.rm = TRUE)
+            , .groups = "drop"
+  ) %>% ungroup %>%
+  mutate( AVG_UNIMP_TIME        = TOT_UNIMP_TIME    / TOT_FLT
+         ,AVG_ADD_ASMA_TIME     = TOT_ADD_ASMA_TIME / TOT_FLT) %>%
+  tidyr::pivot_longer(cols = starts_with("AVG_") , names_to = "TIME", values_to = "SHARE")
+
+# ---------------- blue grey - green grey ------------
+col_blue_green <- c("#8585ad", "#24a887")
+
+g1 <- ggplot(data = asma_pa, mapping = aes(x = YEAR, y = SHARE, fill = TIME)) +
+  geom_col(width = 0.8) +
+  theme_minimal() + scale_y_continuous(labels = scales::comma) +
+  # -------------------darker green (=teel dear)   (light) tea green
+  #scale_fill_manual(values = c("#96E6B3"          , "#CCFCCB") ) +
+  scale_fill_manual(values = col_blue_green) +
+  theme(legend.position = "none"
+       # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+      ) +
+  labs(x = "", y = "average time  [min/arrival]")
+
+# monthly trend for current year
+asma_pm <- params$asma %>% filter(YEAR == max(YEAR)) %>%
+  select(YEAR, MONTH_NUM, TIME_ASMA_ADD_2, TIME_ASMA_UNIMP_2, FLT_ASMA_UNIMP_2 ) %>%
+  group_by(YEAR, MONTH_NUM) %>%
+  summarise( TOT_ADD_ASMA_TIME = sum(TIME_ASMA_ADD_2,   na.rm = TRUE)
+            ,TOT_UNIMP_TIME    = sum(TIME_ASMA_UNIMP_2, na.rm = TRUE)
+            ,TOT_FLT           = sum(FLT_ASMA_UNIMP_2,  na.rm = TRUE)
+            , .groups = "drop"
+  ) %>% ungroup %>%
+  mutate( AVG_ADD_ASMA_TIME     = TOT_ADD_ASMA_TIME / TOT_FLT
+         ,AVG_UNIMP_TIME        = TOT_UNIMP_TIME    / TOT_FLT) 
+
+# year-to-date
+asma_ytd <- asma_pm %>% group_by(YEAR) %>%
+  summarise( TOT_ADD_ASMA_TIME = sum(TOT_ADD_ASMA_TIME)
+            ,TOT_FLT           = sum(TOT_FLT)
+            ,MONTH_MAX    = max(MONTH_NUM), .groups = "drop") %>%
+  mutate( AVG_ADD_ASMA_YTD= TOT_ADD_ASMA_TIME / TOT_FLT)
+
+asma_ytd_val <- round(  asma_ytd$AVG_ADD_ASMA_YTD  , 2)
+asma_ytd_ann <- paste0("year-to-date average additional \n ASMA time: ", asma_ytd_val, " min/arr")
+
+# pivot (long) and ggplot
+asma_pm_piv <- asma_pm %>%
+  tidyr::pivot_longer(cols = starts_with("AVG_") , names_to = "TIME", values_to = "SHARE")
+
+g2 <- ggplot(data = asma_pm_piv
+             , mapping = aes(x = MONTH_NUM, y = SHARE, fill = TIME)) +
+  geom_area(position = "stack") +
+  scale_x_discrete(labels= month_lbls, limits=c(1,2,3,4,5,6,7,8,9,10,11,12)) +
+  expand_limits(x=c(1,12)) +
+  # -------------------------- grnylo   light ylo ########### too limey ######
+  #scale_fill_manual(values = c("#e0ffad", "#fcffc9") ) +
+  # -------------------------- darker green   light green
+  #scale_fill_manual(values = c("#439775", "#48BF84") ) +
+  # -------------------darker green (=teel dear)   (light) tea green
+  scale_fill_manual( values= col_blue_green 
+                    ,labels= c("avg. additional ASMA", "avg. reference ASMA")
+                    ) +
+  theme_minimal() +
+  theme(legend.position = c(0.95, 0.05), legend.justification = c("right", "bottom")
+       # legend key box outline
+       , legend.key = element_rect(colour = 'black', size = 0.6)
+       # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+       # remove legend title
+      ,legend.title = element_blank()) +
+  labs(x = "", y = "") +
+  annotate( "text", x = 2, y = 0.9 * max(asma_pm_piv$SHARE, na.rm = TRUE)
+           , label = paste(asma_ytd_ann, sep = ""), size = 5, hjust=0)
+```
+```{r asmavis, message=FALSE, warning=FALSE}
+egg::ggarrange(g1, g2, widths = c(1,3))
+```
+
+\columnbreak
+
+### Average Taxi-Out Times
+
+```{r txot, message=FALSE, warning=FALSE}
+# annual bar chart
+txot_pa <- params$txot %>% select(YEAR, TIME_TXO_ADD_2, TIME_TXO_UNIMP_2, FLT_TXO_UNIMP_2 ) %>%
+  group_by(YEAR) %>%
+  summarise( TOT_ADD_TXO_TIME  = sum(TIME_TXO_ADD_2,   na.rm = TRUE)
+            ,TOT_UNIMP_TIME    = sum(TIME_TXO_UNIMP_2, na.rm = TRUE)
+            ,TOT_FLT           = sum(FLT_TXO_UNIMP_2,  na.rm = TRUE)
+            , .groups = "drop"
+  ) %>% ungroup %>%
+  mutate( AVG_ADD_TXO_TIME     = TOT_ADD_TXO_TIME / TOT_FLT
+         ,AVG_UNIMP_TIME       = TOT_UNIMP_TIME   / TOT_FLT) %>%
+  tidyr::pivot_longer(cols = starts_with("AVG_") , names_to = "TIME", values_to = "SHARE")
+
+g1 <- ggplot(data = txot_pa, mapping = aes(x = YEAR, y = SHARE, fill = TIME)) +
+  geom_col(width = 0.8) +
+  theme_minimal() + 
+  scale_y_continuous(labels = scales::comma) +
+  scale_fill_manual(values = col_blue_green ) +
+  theme(legend.position = "none"
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+       ) +
+  labs(x = "", y = "average time  [min/departure]")
+
+# monthly trend for current year
+txot_pm <- params$txot %>% filter(YEAR == max(YEAR)) %>%
+  select(YEAR, MONTH_NUM, TIME_TXO_ADD_2, TIME_TXO_UNIMP_2, FLT_TXO_UNIMP_2 ) %>%
+  group_by(YEAR, MONTH_NUM) %>%
+  summarise( TOT_ADD_TXO_TIME  = sum(TIME_TXO_ADD_2,   na.rm = TRUE)
+            ,TOT_UNIMP_TIME    = sum(TIME_TXO_UNIMP_2, na.rm = TRUE)
+            ,TOT_FLT           = sum(FLT_TXO_UNIMP_2,  na.rm = TRUE)
+            ,TOT_TOT           = TOT_ADD_TXO_TIME + TOT_UNIMP_TIME
+            , .groups = "drop"
+  ) %>% ungroup %>%
+  mutate( AVG_ADD_TXO_TIME     = TOT_ADD_TXO_TIME / TOT_FLT
+         ,AVG_UNIMP_TIME       = TOT_UNIMP_TIME   / TOT_FLT
+         ) 
+
+# year-to-date
+txot_ytd <- txot_pm %>% group_by(YEAR) %>%
+  summarise( TOT_ADD_TXO_TIME = sum(TOT_ADD_TXO_TIME)
+            ,TOT_FLT          = sum(TOT_FLT)
+            ,MONTH_MAX        = max(MONTH_NUM)
+            , .groups = "drop") %>%
+  mutate( AVG_ADD_TXOT_YTD= TOT_ADD_TXO_TIME / TOT_FLT)
+
+txot_ytd_val <- round(  txot_ytd$AVG_ADD_TXOT_YTD  , 2)
+txot_ytd_ann <- paste0("year-to-date average additional \n taxi-out time: ", txot_ytd_val, " min/dep")
+
+# pivot (long) and ggplot
+txot_pm_piv <- txot_pm %>%
+  tidyr::pivot_longer(cols = starts_with("AVG_") , names_to = "TIME", values_to = "SHARE")
+
+max_mnth <- txot_pm_piv %>% filter(!is.nan(SHARE)) %>% pull(MONTH_NUM) %>% max()
+
+g2 <- ggplot(data = txot_pm_piv
+             , mapping = aes(x = MONTH_NUM, y = SHARE, group = TIME, fill = TIME)) +
+  geom_area(position = "stack") +
+  scale_x_discrete(labels= month_lbls, limits=c(1,2,3,4,5,6,7,8,9,10,11,12)) +
+  expand_limits(x=c(1,12)) +
+  scale_fill_manual(values = col_blue_green
+                    ,labels= c("avg. additional taxi-out", "avg. reference taxi-out")) +
+  theme_minimal() +
+  theme(legend.position = c(0.95, 0.05), legend.justification = c("right", "bottom")
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+       # remove legend title
+      ,legend.title = element_blank()
+      # legend background - transparent background with no outline
+      #,legend.background = element_rect(fill = alpha("white", 0.5), colour = NA)
+      # legend key box ouline
+      , legend.key = element_rect(colour = 'black', size = 0.6)
+      ) +
+  labs(x = "", y = "") +
+  annotate( "text", x = 2, y = 0.8 * max(txot_pm_piv$SHARE, na.rm = TRUE)
+           , label = txot_ytd_ann, size = 5, hjust=0, vjust = 0)
+```
+```{r txotvis, message=FALSE, warning=FALSE}
+# patchwork
+g1 + g2 + 
+  plot_layout(widths = c(1, 3))
+```
+
+\etwocol
+
+<!-- ------------------------- TXIT and PRE-DEP DLY --------------------------->
+<!-- ## Taxi-In Times and PRE-DEP DELAY -->
+
+\btwocol
+
+### Average Taxi-In Times
+
+```{r txit}
+# annual bar chart
+txit_pa <- params$txit %>%
+  group_by(YEAR) %>% 
+  summarise( TOT_REF      = sum(TOT_REF, na.rm = TRUE)
+            ,TOT_ADD_TXIT = sum(TOT_ADD_TXIT, na.rm = TRUE)
+            ,TOT_N        = sum(N_SMPL, na.rm = TRUE)
+            , .groups = "drop") %>%
+  mutate(    AVG_REF      = TOT_REF      / TOT_N
+         ,   AVG_ADD_TXIT = TOT_ADD_TXIT / TOT_N
+         ,   AVG_TOT_TXIT = (TOT_ADD_TXIT + TOT_REF) / TOT_N
+         ) 
+
+# bg bar ------------------------------------
+txit_pa_thisyear_bg <- data.frame(
+   AVG_TOT_TXIT = max(txit_pa$AVG_TOT_TXIT) * 1.1
+  ,YEAR         = max(txit_pa$YEAR)
+  ,LABEL        = "YTD")
+## -------------------------------------------
+
+txit_pa <- txit_pa %>%
+  tidyr::pivot_longer(cols = c("AVG_REF", "AVG_ADD_TXIT"), names_to = "TXIT_CAT", values_to = "MINPERDEP")
+
+
+
+g1 <- ggplot() +
+  geom_col( data = txit_pa_thisyear_bg
+           ,mapping = aes(x = YEAR, y = AVG_TOT_TXIT)
+           ,fill = "grey", width = 1.05) +
+  geom_label(data= txit_pa_thisyear_bg 
+            ,mapping=aes(x = YEAR, y = AVG_TOT_TXIT, label = LABEL)
+            , alpha = .8) +    # ,nudge_y = 1
+  geom_col( data = txit_pa %>% filter(YEAR >= max(YEAR) - 3)
+           ,mapping = aes(x = YEAR, y = MINPERDEP, fill = TXIT_CAT )
+           ,width = 0.8) +
+  theme_minimal() + scale_y_continuous(labels = scales::comma) +
+  scale_fill_manual(values = col_blue_green ) +
+  theme(legend.position = "none"
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+       # remove legend title
+      #,legend.title = element_blank()
+      ) +
+  labs(x = "", y = "minutes per departure [min/dep]")
+
+# monthly trend for current year
+txit_pm <- params$txit %>% filter(YEAR == max(YEAR)) %>%
+  group_by(YEAR, MONTH_NUM) %>%
+  summarise( TOT_REF      = sum(TOT_REF, na.rm = TRUE)
+            ,TOT_ADD_TXIT = sum(TOT_ADD_TXIT, na.rm = TRUE)
+            ,TOT_N        = sum(N_SMPL, na.rm = TRUE)
+            , .groups = "drop") %>%
+  mutate( AVG_ADD_TXIT   = TOT_ADD_TXIT   / TOT_N
+         ,AVG_REF      = TOT_REF      / TOT_N
+         )
+
+txit_ytd <- txit_pm %>% group_by(YEAR) %>%
+  summarise( TOT_ADD_TXIT = sum(TOT_ADD_TXIT, na.rm = TRUE)
+            ,TOT_N        = sum(TOT_N, na.rm = TRUE)
+            ,MONTH_MAX    = max(MONTH_NUM)
+            , .groups = "drop") %>%
+  mutate( AVG_ADD_TXIT_YTD= TOT_ADD_TXIT   / TOT_N)
+
+txit_ytd_val <- round(  txit_ytd$AVG_ADD_TXIT_YTD  , 2)
+txit_ytd_ann <- paste0("year-to-date average additional \n taxi-in time: ", txit_ytd_val, " min/arr")
+
+txit_pm_piv <- txit_pm %>%
+  tidyr::pivot_longer(cols = c("AVG_ADD_TXIT", "AVG_REF"), names_to = "TXIT_CAT", values_to = "MINPERDEP")
+
+g2 <- ggplot(data = txit_pm_piv
+             , mapping = aes(x = MONTH_NUM, y = MINPERDEP, group = TXIT_CAT, fill = TXIT_CAT)) +
+  geom_area(position = "stack") +
+  theme_minimal() +
+  scale_x_discrete(labels= month_lbls, limits=c(1,2,3,4,5,6,7,8,9,10,11,12)) +
+  expand_limits(x=c(1,12)) +
+  scale_fill_manual( values = col_blue_green                  
+                    ,labels= c("avg. additional taxi-in", "avg. reference taxi-in")) + 
+  theme(legend.position = c(0.95, 0.05), legend.justification = c("right", "bottom")
+    #### legend background - transparent background with no outline
+    ####   ,legend.background = element_rect(fill = alpha("white", 0.5), colour = NA)
+    # legend key box
+    , legend.key = element_rect(colour = 'black', size = 0.6)
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+       # remove legend title
+      ,legend.title = element_blank()
+        ) +
+  labs(x = "", y = "") +
+  annotate( "text", x = 2, y = 0.9 * max(txit_pm_piv$MINPERDEP, na.rm = TRUE)
+           , label = paste(txit_ytd_ann, sep = ""), size = 5, hjust=0)
+```
+```{r txitvis, message=FALSE, warning=FALSE, out.width="100%"}
+# patchwork
+g1 + g2 + 
+  plot_layout(widths = c(1, 3))
+```
+
+\columnbreak
+
+### Reported Pre-Departure Delay
+
+```{r prd}
+# annual bar chart
+pddly_pa <- params$pddly %>% 
+  select(YEAR, TOTAL_DLY_89, TOTAL_DLY_999 , TOTAL_DLY_ZZZ, TOTAL_DLY_OTHER
+         , TOTAL_UN_RPTED_DLY, TOTAL_OV_RPTED_DLY) %>%
+  group_by(YEAR) %>%
+  summarise( TOT_DLY_89        = sum(TOTAL_DLY_89,   na.rm = TRUE)
+            ,TOT_DLY_999       = sum(TOTAL_DLY_999,  na.rm = TRUE)
+            ,TOT_DLY_ZZZ       = sum(TOTAL_DLY_ZZZ,  na.rm = TRUE)
+            ,TOT_DLY_OTHER     = sum(TOTAL_DLY_OTHER,na.rm = TRUE)
+            ,TOT_DLY_UNREPORTED= sum(TOTAL_UN_RPTED_DLY, na.rm = TRUE)
+            ,TOT_DLY_OVREPORTED= sum(TOTAL_OV_RPTED_DLY, na.rm = TRUE)
+            , .groups = "drop"
+  ) %>% ungroup %>%
+## grouping for v1 ------------------------------
+## discussion Sara & Rainer: do not show overreported
+  mutate(
+    TOT_DLY_UNID = TOT_DLY_999 + TOT_DLY_ZZZ + TOT_DLY_UNREPORTED 
+  ) %>%
+  select(YEAR, TOT_DLY_89, TOT_DLY_OTHER, TOT_DLY_UNID) %>%
+  mutate(MAX_TOTAL = TOT_DLY_89 + TOT_DLY_OTHER + TOT_DLY_UNID)
+
+
+# bg bar ------------------------------------
+pddly_pa_thisyear_bg <- data.frame(
+   MAX_TOTAL = max(pddly_pa$MAX_TOTAL) * 1.1
+  ,YEAR      = max(pddly_pa$YEAR)
+  ,LABEL     = "YTD")
+## -----------------------------------------------
+
+## colour coding
+  # ----------      DLY_89  , DLY_OTH , DLY_UNID
+  col_prep_dly = c("#79a6d2","#ff9966","#28bd98")
+
+
+## long-to-wide
+pddly_pa <- pddly_pa %>%
+  tidyr::pivot_longer(cols = starts_with("TOT_DLY_") , names_to = "DLY_CAT", values_to = "MINUTES")
+
+g1 <- ggplot() +
+  # --------------- YTD column --------------------------
+  geom_col( data    = pddly_pa_thisyear_bg
+           ,mapping = aes(x = YEAR, y = MAX_TOTAL)
+           ,fill    = "grey", width = 1.05) +
+  geom_label( data  = pddly_pa_thisyear_bg
+           ,mapping = aes(x = YEAR, y = MAX_TOTAL, label = LABEL)) +
+  # --------------- bar chart ---------------------------
+  geom_col( data    = pddly_pa %>% filter(YEAR >= max(YEAR) - 3)  # last 4 years
+           ,mapping = aes(x = YEAR, y = MINUTES, fill = DLY_CAT)
+           ,width   = 0.8) +
+  theme_minimal() +
+  scale_y_continuous(labels = unit_format(unit="k", scale = 1e-3)) +
+  scale_fill_manual( values = col_prep_dly
+                    ,labels = c("code 89","other","unidentified")) +
+  theme(legend.position = "none"
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+       # remove legend title
+       #,legend.title = element_blank()
+       # legend background - transparent background with no outline
+       ,legend.background = element_rect(fill = alpha("white", 0.5), colour = NA)
+        ) +
+  labs(x = "", y = "delay [min]")
+
+# monthly trend for current year
+pddly_pm <- params$pddly %>% filter(YEAR == max(YEAR)) %>%
+  select(  YEAR, MONTH_NUM, APT_FLT_DEP
+         , TOTAL_DLY_89, TOTAL_DLY_999 , TOTAL_DLY_ZZZ, TOTAL_DLY_OTHER
+         , TOTAL_UN_RPTED_DLY, TOTAL_OV_RPTED_DLY) %>%
+  group_by(YEAR, MONTH_NUM) %>%
+  summarise( FLT_DEP           = sum(APT_FLT_DEP,    na.rm = TRUE)
+            ,TOT_DLY_89        = sum(TOTAL_DLY_89,   na.rm = TRUE)
+            ,TOT_DLY_999       = sum(TOTAL_DLY_999,  na.rm = TRUE)
+            ,TOT_DLY_ZZZ       = sum(TOTAL_DLY_ZZZ,  na.rm = TRUE)
+            ,TOT_DLY_OTHER     = sum(TOTAL_DLY_OTHER,na.rm = TRUE)
+            ,TOT_DLY_UNREPORTED= sum(TOTAL_UN_RPTED_DLY, na.rm = TRUE)
+            ,TOT_DLY_OVREPORTED= sum(TOTAL_OV_RPTED_DLY, na.rm = TRUE)
+            , .groups = "drop"
+  ) %>% ungroup %>%
+  ## grouping for v1 ------------------------
+  mutate(
+    TOT_DLY_UNID = TOT_DLY_999 + TOT_DLY_ZZZ + TOT_DLY_OTHER + TOT_DLY_UNREPORTED
+  ) %>%
+  select(YEAR, MONTH_NUM, FLT_DEP, TOT_DLY_89, TOT_DLY_OTHER, TOT_DLY_UNID) 
+
+
+## ytd message ----------------------------------------------------
+ytd <- pddly_pm %>% 
+  summarise( MONTH      = max(MONTH_NUM)
+            ,FLT_DEP    = sum(FLT_DEP)
+            ,TOT_DLY_89 = sum(TOT_DLY_89), TOT_DLY_OTHER = sum(TOT_DLY_OTHER)
+            ,TOT_DLY_89_UNID = sum(TOT_DLY_UNID)
+            ,MAX_TOTAL  = TOT_DLY_89 + TOT_DLY_OTHER + TOT_DLY_UNID
+            )
+msg <- paste0("year-to-date (", month_lbls[ytd$MONTH] ,") average" 
+              ,"\nATC pre-departure delay: "
+              , round(ytd$TOT_DLY_89 / ytd$FLT_DEP, 2), " min/dep.")
+## --------------------------------------- end message construction
+
+
+## wide-to-long for ggplot
+pddly_pm <- pddly_pm %>%
+  tidyr::pivot_longer(cols = starts_with("TOT_DLY_") , names_to = "DLY_CAT", values_to = "MINUTES")
+
+g2 <- ggplot(data = pddly_pm
+             , mapping = aes(x = MONTH_NUM, y = MINUTES, fill = DLY_CAT)) +
+  geom_col(width = 0.8) +
+  theme_minimal() + 
+  scale_x_discrete(labels= month_lbls, limits=c(1,2,3,4,5,6,7,8,9,10,11,12)) +
+  scale_fill_manual(values = col_prep_dly
+                    ,labels = c("code 89","other","unidentified")) +
+  scale_y_continuous(labels = unit_format(unit="k", scale = 1e-3)) +
+  theme(legend.position = c(0.95, 0.05), legend.justification = c("right", "bottom")
+        # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+       # remove legend title
+      ,legend.title = element_blank()
+      # legend background - transparent background with no outline
+      #,legend.background = element_rect(fill = alpha("white", 0.5), colour = NA)
+      # legend key box outline
+      , legend.key = element_rect(colour = 'black', size = 0.6)
+        ) +
+  labs(x = NULL, y = NULL) + 
+  annotate(geom = "text", label = msg
+           , x = 2, y = ytd$MAX_TOTAL / 2, hjust = 0, vjust = 0, size = 5 )
+```
+```{r prdvis, message=FALSE, warning=FALSE}
+egg::ggarrange(g1, g2, widths = c(1,3))
+```
+
+\etwocol
+
+<!--  --------------------- TURNAROUND TIMES ---------------------------------
+## Turnaround  -->
+
+<!-- single col layout: commented out: \btwocol  -->
+
+### Annual Average Turnaround Times
+
+```{r annual_turn_time}
+turn_pa <- params$turn %>% 
+  group_by(YEAR, AC_CLASS) %>% 
+  summarise(N=sum(N), AVG_ATTT = mean(AVG_ATTT), AVG_STTT = mean(AVG_STTT), .groups = "drop") %>%
+  group_by(YEAR) %>% 
+  mutate( SHARE = N / sum(N, na.rm = TRUE)
+         ,SHARE = SHARE * 100 %>% round(2)) %>% 
+  ungroup() %>% 
+ # filter(AC_CLASS == "H" | SHARE > 10) %>% # show if Share above 10%
+  filter(AC_CLASS %in% c("H", "MJ", "MT") ) %>%
+  tidyr::pivot_longer(cols = c("AVG_ATTT", "AVG_STTT"), names_to = "TT_CAT", values_to = "AVG_MIN")
+
+g1 <- ggplot(data = turn_pa, mapping = aes(x = YEAR, y = AVG_MIN, fill = AC_CLASS )) +
+  geom_col(position = "dodge", width = 0.8) +
+  scale_fill_brewer(palette = "Paired") +
+  theme_minimal() + 
+  labs(x=NULL, y="average monthly turn times [min]") + 
+  theme(legend.position = "top" # remove legend
+    # control legend key size
+       ,legend.key.size = unit(0.1, "cm")
+    # remove legend title
+      ,legend.title = element_blank()
+    # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+    # set axis font 
+     ,axis.text  = element_text(size = 6)
+    , axis.title = element_text(size = 8)
+    )
+  
+
+# monthly trend for current year -----------------------------------------------
+
+turn_pm <- params$turn %>% filter(YEAR == max(YEAR)) %>%
+  group_by(YEAR, MONTH, AC_CLASS) %>%
+  summarise(N = sum(N), AVG_ATTT = mean(AVG_ATTT), AVG_STTT = mean(AVG_STTT), .groups = "drop") %>%
+  ungroup() %>% 
+  filter(AC_CLASS %in% c("H", "MJ", "MT") ) %>%
+  tidyr::pivot_longer(cols = c("AVG_ATTT", "AVG_STTT"), names_to = "TT_CAT", values_to = "AVG_MIN")
+
+g2 <- ggplot(data = turn_pm, mapping = aes(x = MONTH, y = AVG_MIN, colour = AC_CLASS)) +
+  geom_path(mapping = aes(linetype = TT_CAT)) +
+  scale_x_discrete(labels= month_lbls, limits=c(1,2,3,4,5,6,7,8,9,10,11,12)) +
+  expand_limits(x=c(1,12)) +
+  scale_colour_brewer(palette = "Paired", labels = c("actual","scheduled")) +
+  guides(colour = FALSE) + 
+  theme_minimal() +
+  theme(legend.position = "top"
+        ,legend.title = element_blank()
+    # remove the vertical grid lines
+       ,panel.grid.major.x = element_blank()
+       ,panel.grid.minor.x = element_blank()
+       # set axis fonts
+       ,axis.text  = element_text(size = 6)
+       ,axis.title = element_text(size = 8)
+       ) +
+  labs(x = "", y = "")
+```
+```{r turn_vis, fig.height=2.5, out.width="70%"}
+egg::ggarrange(g1, g2, widths = c(1,3))
+```
+
+<!-- single col layout: commented out:  \columnbreak   -->
+
+<!-- single col layout: commented out: \etwocol -->
+
+<!--  ------------------------ PUNCTUALITY ------------------------------------>
+
+
+<!-- ------------------------- ABOUT ------------------------------------------>
+## About
+
+This Airport Performance Factsheet for `r params$name` (`r params$icao`) is published by the EUROCONTROL Performance Review Unit in the interest of the exchange of performance related information.
+
+Further performance related data can be downloaded from the performance portal at https://ansperformance.eu. Browse for the data section.
+
+<!-- The factsheet is complemented by an interactive dashboard at << add weblink >>. -->
+
+For further questions or observations, please contact PRU (pru-support@eurocontrol.int).
+
+<!-- ---------------------- layout placeholder --------------------------------
+
+## 2-Column Layout Format Placeholder
+
+\btwocol
+
+### new chart A
+
+\columnbreak
+
+### new chart B
+
+\etwocol
+
+<-----------------------------------------------------------------------    -->
