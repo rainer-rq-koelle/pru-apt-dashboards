@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(readr)
+library(stringr)
 library(dplyr)
 ```
 
@@ -31,7 +32,7 @@ length(apts)
 ```
 ```{r}
 info <- info %>% 
-  select(APT_ICAO, APT_NAME) %>%
+  select(APT_ICAO, APT_COUNTRY, APT_NAME) %>%
   filter(APT_ICAO %in% apts) %>%
   mutate(DASHBOARD = TRUE)
 ```
