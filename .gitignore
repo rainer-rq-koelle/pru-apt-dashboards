@@ -29,3 +29,6 @@ vignettes/*.pdf
 .Renviron
 # keep data locally only
 /data/
+####
+factsheets/
+!factsheets/*.pdf

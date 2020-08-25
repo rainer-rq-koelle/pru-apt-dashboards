@@ -52,7 +52,6 @@ options(tinytex.verbose = TRUE)
 library(dplyr)
 library(ggplot2)
 library(scales)   # to manage ggplot scale / non-scientific notation
-library(egg)
 library(patchwork)
 library(gridExtra)
 library(kableExtra)
@@ -81,7 +80,7 @@ https://www.w3schools.com/colors/colors_picker.asp
 
 \btwocol
 
-```{r overview, out.width="100%"}
+```{r overview, out.width="90%"}
 #ad_chart <- paste("data-ad-charts/", params$icao, ".png", sep="")
 #knitr::include_graphics(ad_chart)
 filename <- paste("data-ad-charts/", params$icao, ".png", sep="") 
@@ -95,37 +94,40 @@ ad_chart %>% image_trim()
 
 \columnbreak
 
-airport: `r params$icao`   
-iata: `r params$iata`    
-name: `r params$name`    
-state: `r params$state`  
+```{r id}
+id_tbl <- tribble(
+   ~ITEM       , ~TEXT1       , ~TEXT2
+  ,"Airport"   , params$name  , ""
+  ,"ICAO/IATA" , paste0(params$icao, "/", params$iata) , ""
+  ,"State"     , params$state , ""
+  ,""          ,""            , ""
+)
 
-```{r rwy-config, comment=NA}
-params$config %>%
-  select(CONFIGURATION, SHARE_PCT) %>%
-  mutate( SHARE_PCT = round(100 * SHARE_PCT)
-         ,SHARE_PCT = paste0(SHARE_PCT, "%")) %>%
-  knitr::kable( "latex" #, booktabs = TRUE,
-    ,col.names = c("runway configurations in 2019", "")
-    )
-#%>%
-#  kable_styling( full_width = F, position = "left") %>%
-#  sub("\\\\toprule", "", .) %>%
-#  sub("\\\\bottomrule", "", .)
+rwy_config <- params$config %>%
+  mutate(ITEM = "") %>%
+  select(ITEM, TEXT1 = CONFIGURATION, TEXT2 = SHARE_PCT ) %>%
+  mutate(TEXT2 = paste0(round( 100 * TEXT2) , "%")) %>%   # no digit
+  na.omit()
+rwy_config$ITEM[1] <- "Configurations \nin 2019"
 
-#%>% 
-#  kable_styling(latex_options = "striped")
-#
-#config <- params$config %>% 
-#  mutate( SHARE_STR = round(100 * SHARE_PCT)
-#         ,STRING    = paste(CONFIGURATION, SHARE_STR, sep = "   ") 
-#         ,STRING    = paste("* ", STRING, "%")) %>% 
-#  pull(STRING)
-#writeLines(config)
+rwy_config_footer <- data.frame(
+  ITEM = "", TEXT1 = ""
+)
+
+id_tbl <- id_tbl %>% 
+  bind_rows(rwy_config)
+id_tbl <- id_tbl %>% mutate(RN = nrow(id_tbl):1)
+#row.names(id_tbl) <- id_tbl$ITEM
+
+
+id_tbl %>% 
+  tidyr::pivot_longer( cols = c("ITEM","TEXT1","TEXT2")
+                      ,names_to = "COL", values_to = "VAL") %>% 
+  ggplot() +
+  geom_text(mapping = aes(x = COL, y = RN, label = VAL), hjust = 0, size = 5) +
+  coord_fixed(ratio = 1/8) + 
+  theme_void()
 ```
-
->Only configurations with a minimum of 3% 
->share are shown.
 
 \etwocol
 
@@ -135,13 +137,22 @@ params$config %>%
 
 ### Summary 
 
-```{r}
-p <- ggplot(mtcars[1:10, c('mpg', 'disp')]) +
-  geom_point(aes(x = mpg, y = disp))
+```{r, message=FALSE, warning=FALSE}
+source("./R/prepare_frontpage_DT_Rel1.R")
+
+out <- prepare_front_page_DT(params$icao, params$tfc, params$asma, params$txot, params$atfm
+                             , params$ldgsum, params$latest)
+
+out <- out %>% select(NAM, YEAR2019, CURRENT)
+
+
+grid_theme <- ttheme_default(fg_params = list(fontsize = 20, hjust=0))
 
 #patchwork   
-patch <- p + gridExtra::tableGrob(mtcars[1:10, c('mpg', 'disp')])
-patch
+wrap_elements(
+  gridExtra::tableGrob(out, rows = NULL, theme = grid_theme
+                       ,cols = c("Indicator", "2019 Results", "Current Result"))
+)
 ```
 
 
@@ -193,12 +204,21 @@ mvts_pa <- params$tfc %>% select(YEAR, FLT_TOT_1 ) %>%
 
 mvts_pa$YTD <- mvts_pa$YEAR == max(mvts_pa$YEAR)
 
-g1 <- ggplot(data = mvts_pa, mapping = aes(x = YEAR, y = FLT_TOT, fill = YEAR
-                                           #, colour = YTD
-                                           #, size = YTD   - not clear when used and throws warning
-                                           )
-             ) +
-  geom_col(width = 0.8) + 
+# ------------- define background column --------------------------
+bg_col <- data.frame(
+  YEAR   = max(mvts_pa$YEAR)
+  ,MAX   = max(mvts_pa$FLT_TOT) * 1.1
+  ,LABEL = "YTD" 
+) # ---------------------------------------------------------------
+
+g1 <- ggplot() +
+  #-------------------- add background col --------------------------
+  geom_col( data    = bg_col, mapping = aes(x = YEAR, y = MAX), fill = "grey") +
+  geom_label(data   = bg_col, mapping = aes(x = YEAR, y = MAX, label = LABEL), alpha = .8) +
+  # ------------------- bar chart -----------------------------------
+  geom_col( data    = mvts_pa
+           ,mapping = aes(x = YEAR, y = FLT_TOT, fill = YEAR)
+           , width  = 0.8) + 
   scale_y_continuous(labels = unit_format(unit="k", scale = 1e-3)) +
   scale_fill_brewer(palette = "Blues") +
  # scale_x_discrete(limits=mvts_pa$YEAR, breaks=mvts_pa$YEAR[seq(2016,length(mvts_pa$YEAR),by=2)]) + 
@@ -209,39 +229,7 @@ g1 <- ggplot(data = mvts_pa, mapping = aes(x = YEAR, y = FLT_TOT, fill = YEAR
   theme(legend.position = "none"
         # remove the vertical grid lines
        ,panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "total IFR movements")
-
-# monthly trend
-mvts_pm <- params$tfc %>% select(YEAR, MONTH_MON, MONTH_NUM, FLT_TOT_1) %>%
-  group_by(YEAR, MONTH_MON, MONTH_NUM) %>%
-  summarise(FLT_TOT = sum(FLT_TOT_1, na.rm = TRUE), .groups = "drop") %>% ungroup() %>%
-  arrange(factor(MONTH_NUM, levels=month_num_c))
-
-## year-to-date traffic growth
-grwth_pm <- mvts_pm %>% filter(YEAR == max(YEAR))
-y0 <- grwth_pm$FLT_TOT[1]  # beginning of year, i.e. Febr ~ 28 days = small dip
-yn <- grwth_pm$FLT_TOT[  nrow(grwth_pm)] # current month flights
-mth<- grwth_pm$MONTH_NUM[nrow(grwth_pm)] # current month name
-mth_int <- sub("^0+", "",mth) # truncate leading zero
-mth_int <- as.integer(mth_int) %>% max()
-month_lbl <- month_lbls[mth_int] # current (or max supplied) month label
-grwth_ann <- paste0("year-to-date \n growth (", month_lbl,"): ", round(100*((yn-y0)/y0), 1),"%")  
-
-g2 <- ggplot(data = mvts_pm
-             , mapping = aes(x = MONTH_NUM, y = FLT_TOT, group= YEAR, colour = YEAR)) +
-  geom_line() + 
-  expand_limits(y = 0) + 
-  # MONTH_NUM is a CHARACTER !!!!
-  scale_x_discrete(labels= month_lbls) +   
-  scale_y_continuous(labels = unit_format(unit="k", scale = 1e-3)) +
-  scale_color_brewer(palette = "Blues") +
-  theme_minimal() +
-  theme( legend.position = c(0.95, 0.05), legend.justification = c("right", "bottom")
-        ,legend.title=element_blank()
-        # remove the vertical grid lines
-       ,panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "") + 
-  annotate("text", x ="02", y = 0.5 * y0, label = grwth_ann, size = 5, hjust=0)
+  labs(x = NULL, y = "total IFR movements")
 ```
 
 ```{r}
@@ -257,7 +245,7 @@ msg         <- paste0( "Busiest month (last 5 years): \n"
                       ,mvts_pm_max$MONTH_NUM, "-", mvts_pm_max$YEAR
                       ,": ", mvts_pm_max$FLT_TOT)
 
-p2 <- mvts_pm %>%
+g2 <- mvts_pm %>%
   ggplot() + 
   geom_line(mapping = aes(MONTH_NUM, y = FLT_TOT, group = YEAR, colour = YEAR)) + 
   scale_x_discrete(labels = month_lbls) + 
@@ -266,18 +254,18 @@ p2 <- mvts_pm %>%
            ,legend.title=element_blank()
             # remove the vertical grid lines
             ,panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "") + 
+  labs(x = NULL, y = NULL) + 
  # annotate("segment", arrow = arrow()
 #           , x = "04", xend = mvts_pm_max$MONTH_NUM
 #           , y = mvts_pm_max$FLT_TOT - 2000,yend = mvts_pm_max$FLT_TOT
 #           , alpha = .5) +
  # scale_y_continuous(expand = expand_scale(mult = c(0, 0.3))) +
   annotate( geom = "text", x = mvts_pm_max$MONTH_NUM, y = mvts_pm_max$FLT_TOT + 2000
-           ,label = msg, hjust = "left")
+           ,label = msg, hjust = "center")
 ```
 ```{r traffic-vis}
 # patchwork
-g1 + p2 + 
+g1 + g2 + 
   plot_layout(widths = c(1, 3))
 ```
 
@@ -407,7 +395,18 @@ atfm_pa <- params$atfm %>%
             ,AD_CAPACITY_ATC = sum(AD_CAPACITY_ATC, na.rm = TRUE)
             ,AD_STAFFING_ATC = sum(AD_STAFFING_ATC, na.rm = TRUE)
             ,AD_EVENTS       = sum(AD_EVENTS,     na.rm = TRUE)
-            , .groups = "drop") %>% ungroup() %>% 
+            , .groups = "drop") %>%
+  mutate( MAX_AVG_ARR_DLY = DLY_APT_ARR_TOT / FLT_ARR_TOT)
+
+## define bg_col ---------------------------
+bg_col <- data.frame(
+  YEAR   = max(atfm_pa$YEAR)
+  ,MAX   = max(atfm_pa$MAX_AVG_ARR_DLY) * 1.1
+  ,LABEL = "YTD"
+) ## --------------------------------------
+
+# wide-to-long
+atfm_pa <- atfm_pa %>% 
   tidyr::pivot_longer(cols = starts_with("AD_"), names_to = "REG_REASON", values_to = "DLY") %>%
   mutate(AVG_ARR_ATFM_DLY = DLY_APT_ARR_TOT / FLT_ARR_TOT
          ,AVG_ARR_ATFM_REG= DLY / FLT_ARR_TOT)
@@ -448,16 +447,24 @@ atfm_pa_thisyear_msg <- paste0(
 
 ## ----------------------------------------------------- end message text
 
-g1 <- ggplot(data = atfm_pa %>% filter(YEAR != lubridate::year(today()))
-             , mapping = aes(x = YEAR, y = AVG_ARR_ATFM_REG, fill = REG_REASON)) +
-  geom_col(position = "stack", width = 0.8) +
+
+
+
+g1 <- ggplot() +
+  # ------------------------- add grey background -------------------------
+  geom_col(  data = bg_col, mapping = aes(x = YEAR, y = MAX), fill = "grey") +
+  geom_label(data = bg_col, mapping = aes(x = YEAR, y = MAX, label = LABEL), alpha = .8) +
+  # ------------------------- barchart ------------------------------------  
+  geom_col( data    = atfm_pa 
+           ,mapping = aes(x = YEAR, y = AVG_ARR_ATFM_REG, fill = REG_REASON)
+           ,position = "stack", width = 0.8) +
   theme_minimal() + # scale_y_continuous(labels = scales::comma) +
   scale_fill_manual(breaks = brks, labels = atfm_lbl, values = atfm_col) +
   theme(legend.position = "none"
         # remove the vertical grid lines
        ,panel.grid.major.x = element_blank()
        ,panel.grid.minor.x = element_blank()) +
-  labs(x = "", y = "average arrival ATFM delay [min/arrival]")
+  labs(x = NULL, y = "average arrival ATFM delay [min/arrival]")
 
 # monthly trend
 atfm_pm <- params$atfm %>% 
@@ -626,14 +633,30 @@ asma_pa <- params$asma %>% select(YEAR, TIME_ASMA_ADD_2, TIME_ASMA_UNIMP_2, FLT_
             , .groups = "drop"
   ) %>% ungroup %>%
   mutate( AVG_UNIMP_TIME        = TOT_UNIMP_TIME    / TOT_FLT
-         ,AVG_ADD_ASMA_TIME     = TOT_ADD_ASMA_TIME / TOT_FLT) %>%
+         ,AVG_ADD_ASMA_TIME     = TOT_ADD_ASMA_TIME / TOT_FLT
+         ,TOT_AVG_ASMA          = (TOT_ADD_ASMA_TIME + TOT_UNIMP_TIME) / TOT_FLT) 
+
+# define grey background column -------------------------------------
+bg_col <- data.frame(YEAR   = max(asma_pa$YEAR)
+                     ,MAX   = max(asma_pa$TOT_AVG_ASMA) * 1.1
+                     ,LABEL = "YTD")
+## ------------------------------------------------------------------
+
+
+# wide-to-long for plotting
+asma_pa <- asma_pa %>%
   tidyr::pivot_longer(cols = starts_with("AVG_") , names_to = "TIME", values_to = "SHARE")
 
 # ---------------- blue grey - green grey ------------
 col_blue_green <- c("#8585ad", "#24a887")
 
-g1 <- ggplot(data = asma_pa, mapping = aes(x = YEAR, y = SHARE, fill = TIME)) +
-  geom_col(width = 0.8) +
+g1 <- ggplot() +
+  # -------------------- background column ------------------------
+  geom_col(  data = bg_col, mapping = aes(x = YEAR, y = MAX), fill = "grey") +
+  geom_label(data = bg_col, mapping = aes(x = YEAR, y = MAX, label = LABEL), alpha = .8) +
+  # -------------------- barchart ---------------------------------
+  geom_col( data = asma_pa, mapping = aes(x = YEAR, y = SHARE, fill = TIME)
+           ,width = 0.8) +
   theme_minimal() + scale_y_continuous(labels = scales::comma) +
   # -------------------darker green (=teel dear)   (light) tea green
   #scale_fill_manual(values = c("#96E6B3"          , "#CCFCCB") ) +
@@ -715,11 +738,28 @@ txot_pa <- params$txot %>% select(YEAR, TIME_TXO_ADD_2, TIME_TXO_UNIMP_2, FLT_TX
             , .groups = "drop"
   ) %>% ungroup %>%
   mutate( AVG_ADD_TXO_TIME     = TOT_ADD_TXO_TIME / TOT_FLT
-         ,AVG_UNIMP_TIME       = TOT_UNIMP_TIME   / TOT_FLT) %>%
+         ,AVG_UNIMP_TIME       = TOT_UNIMP_TIME   / TOT_FLT
+         ,TOT_AVG_TXO_TIME     = (TOT_ADD_TXO_TIME + TOT_UNIMP_TIME) / TOT_FLT) 
+
+# ------------- define bg column ---------------------------
+bg_col = data.frame(
+  YEAR = max(txot_pa$YEAR)
+  ,MAX = max(txot_pa$TOT_AVG_TXO_TIME) * 1.1
+  ,LABEL = "YTD"
+  ) ## -----------------------------------------------------
+
+
+# wide-to-long for plotting
+txot_pa <- txot_pa %>%
   tidyr::pivot_longer(cols = starts_with("AVG_") , names_to = "TIME", values_to = "SHARE")
 
-g1 <- ggplot(data = txot_pa, mapping = aes(x = YEAR, y = SHARE, fill = TIME)) +
-  geom_col(width = 0.8) +
+g1 <- ggplot() +
+  # ------------------ grey bg column ----------------------
+  geom_col(  data = bg_col, mapping = aes(x = YEAR, y = MAX), fill = "grey") +
+  geom_label(data = bg_col, mapping = aes(x = YEAR, y = MAX, label = LABEL), alpha = .8) +
+  # ------------------ barchart ----------------------------
+  geom_col( data = txot_pa, mapping = aes(x = YEAR, y = SHARE, fill = TIME)
+           ,width = 0.8) +
   theme_minimal() + 
   scale_y_continuous(labels = scales::comma) +
   scale_fill_manual(values = col_blue_green ) +
@@ -984,22 +1024,22 @@ pddly_pm <- params$pddly %>% filter(YEAR == max(YEAR)) %>%
   ) %>% ungroup %>%
   ## grouping for v1 ------------------------
   mutate(
-    TOT_DLY_UNID = TOT_DLY_999 + TOT_DLY_ZZZ + TOT_DLY_OTHER + TOT_DLY_UNREPORTED
-  ) %>%
-  select(YEAR, MONTH_NUM, FLT_DEP, TOT_DLY_89, TOT_DLY_OTHER, TOT_DLY_UNID) 
+     TOT_DLY_UNID = TOT_DLY_999 + TOT_DLY_ZZZ + TOT_DLY_UNREPORTED
+    ,MAX_TOTAL = TOT_DLY_89 + TOT_DLY_OTHER + TOT_DLY_UNID
+    ) %>%
+  select(YEAR, MONTH_NUM, FLT_DEP, TOT_DLY_89, TOT_DLY_OTHER, TOT_DLY_UNID, MAX_TOTAL)  
 
 
 ## ytd message ----------------------------------------------------
 ytd <- pddly_pm %>% 
-  summarise( MONTH      = max(MONTH_NUM)
-            ,FLT_DEP    = sum(FLT_DEP)
-            ,TOT_DLY_89 = sum(TOT_DLY_89), TOT_DLY_OTHER = sum(TOT_DLY_OTHER)
-            ,TOT_DLY_89_UNID = sum(TOT_DLY_UNID)
-            ,MAX_TOTAL  = TOT_DLY_89 + TOT_DLY_OTHER + TOT_DLY_UNID
+  summarise( MONTH     = max(MONTH_NUM)
+            ,FLT_DEP   = sum(FLT_DEP), TOT_DLY_89 = sum(TOT_DLY_89)
+            ,MAX_TOTAL = max(MAX_TOTAL)
             )
+
 msg <- paste0("year-to-date (", month_lbls[ytd$MONTH] ,") average" 
-              ,"\nATC pre-departure delay: "
-              , round(ytd$TOT_DLY_89 / ytd$FLT_DEP, 2), " min/dep.")
+              ,"\nATC pre-departure delay "
+              ,"\n(code 89): ", round(ytd$TOT_DLY_89 / ytd$FLT_DEP, 2), " min/dep.")
 ## --------------------------------------- end message construction
 
 
@@ -1117,7 +1157,10 @@ egg::ggarrange(g1, g2, widths = c(1,3))
 
 This Airport Performance Factsheet for `r params$name` (`r params$icao`) is published by the EUROCONTROL Performance Review Unit in the interest of the exchange of performance related information.
 
-Further performance related data can be downloaded from the performance portal at https://ansperformance.eu. Browse for the data section.
+Further performance related data can be downloaded from the performance portal at https://ansperformance.eu. Browse for the Support >> Data downloads section.
+
+An interactive dashboard with performance related data for `r params$name` (`r params$icao`) is available at
+[https://ansperformance.eu/dashboard/stakeholder/airport/`r params$icao`](https://ansperformance.eu/dashboard/stakeholder/airport/`r params$icao`).
 
 <!-- The factsheet is complemented by an interactive dashboard at << add weblink >>. -->
 

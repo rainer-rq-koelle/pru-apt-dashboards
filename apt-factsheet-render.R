@@ -29,7 +29,7 @@ library("readxl")
 library(formattable)
 library(sparkline)
 
-min_year <- 2016 # by definition 5 years, i.e. 2016-2020
+min_year <- 2017 # factsheet by definition 4 years, i.e. 2017-2020
 
 # PICK AIRPORTS -------------------------------------------------
 # TO LIMIT TEST LOAD SUBSET FOR "TEST" AIRPORTS
