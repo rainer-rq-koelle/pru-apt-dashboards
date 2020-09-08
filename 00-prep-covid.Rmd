@@ -20,8 +20,9 @@ TO-DO: check back with Muriel to produce data for APDF airports not in top100.
 ```
 Read in latest COVID file(s) from Muriel.
 
-* download 1_Top_100_Airport_dep+arr_LTFM+LTBA (Synthesis).xlsx
-  save as COVID-AIRPORT.xlsx
+* download `1_Top_100_Airport_dep+arr_LTFM+LTBA (Synthesis).xlsx`
+  save as `COVID-AIRPORT.xlsx`.
+  **NOTE**: this is done by `data/copy_excel_files.R`
 
 ```{r}
 ds <- readxl::read_excel(
