@@ -43,7 +43,7 @@ apts <- c("EGLL","LGAV","LROP")   #,"EGLL","EBBR", "LEMD")
 ## ------------ READ IN DATA TABLES FROM DOWNLOAD POINT ------------------
 #
 # Thierry's dashboard table
-db_df <- readr::read_csv2("./data/STAT_AIRPORT_MONTHLY.csv")
+db_df <- readr::read_csv2("./data/STAT_AIRPORT_MONTHLY_DATA.csv")
 
 db_conf <- readr::read_csv2("./data/STAT_AIRPORT_CONFIGURATION.csv")
 
