@@ -5,14 +5,17 @@
 # The render script reads all "input data" trims it for the ICAO location 
 # and supplies it to the parameterized dashboard Rmd.
 #
-#
-# To-Do
-# 1. processing pipeline read/extract data from PRISME to remove by hand download
+# DONE:
+# 1. processing pipeline read/extract data from PRISME to remove by hand download.
+#    SEE: data/export_stat_airport.R
 # 1a.download prepared data files from sharepoint release archive/repo
 #    https://coll.eurocontrol.int/sites/pru/dashboard/Data/ --> check for latest release
 #    traffic and atfm
 #    or download data from blog portal repo:
 #    https://github.com/euctrl-pru/portal/tree/master/static/download/xls
+#    SEE: data/export_stat_airport.R ; it assumes they are in the repo pru-portal
+#
+# To-Do
 # 2. reduce data load by cleaning the input data tables
 #    note: as the dashboard is under development this will be a clean-up task
 #    once it is known what the "minimal needed payload data" is
