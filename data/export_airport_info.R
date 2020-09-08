@@ -1,6 +1,5 @@
 library(ROracle)
-library(dplyr)
-library(stringr)
+library(magrittr)
 library(withr)
 library(readr)
 
@@ -23,21 +22,22 @@ export_airport_info <- function() {
   )
   
   query <- "
-    SELECT
-      AIRPORT, APT_ICAO, APT_IATA, APT_NAME, APT_COUNTRY
-    FROM
-      STAT_AIRPORT_INFO
-    WHERE
-      APT_IN_PIP = 'Y'
+  SELECT 
+    A.AIRPORT,
+    A.APT_ICAO,
+    A.APT_IATA,
+    A.APT_NAME,
+    A.APT_COUNTRY,
+    A.APT_NAME || ' (' || A.APT_ICAO || ')' AS ICAO_LABEL,
+    A.APT_NAME || ' (' || A.APT_IATA || ')' AS IATA_LABEL
+  FROM
+    STAT_AIRPORT_INFO A
+  WHERE A.APT_IN_PIP = 'Y'
   "
   
   con %>%
     dbSendQuery(query) %>%
-    fetch(n = -1) %>% 
-    dplyr::mutate(
-      ICAO_LABEL = stringr::str_glue("{APT_NAME} ({APT_ICAO})"), 
-      IATA_LABEL = stringr::str_glue("{APT_NAME} ({APT_IATA})")
-    )
+    fetch(n = -1)
 }
 
 export_airport_info() %>% 
