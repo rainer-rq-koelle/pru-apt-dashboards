@@ -1422,7 +1422,7 @@ g1 <- turn_pa %>% plot_ly(x = ~YEAR)
 # iterate over all aircraft class columns
 for(my_class in col_names){
   g1 <- g1 %>% 
-    add_bars( y    = as.formula(paste0("~`", CLASS, "`"))
+    add_bars( y    = as.formula(paste0("~`", my_class, "`"))
              ,name = nice_names$NAME[nice_names$CLASS == my_class])
 }
 
