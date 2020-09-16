@@ -1388,23 +1388,45 @@ turn_pa <- params$turn %>%
      select(YEAR, AC_CLASS, AVG_ATTT) %>% 
      filter(AC_CLASS %in% c("H", "MJ", "MT") ) %>%
      group_by(YEAR, AC_CLASS) %>% 
-     summarise(AVG_ATTT = mean(AVG_ATTT)) %>%
-     ungroup() %>%
+     summarise(AVG_ATTT = mean(AVG_ATTT), .groups = "drop") %>%
      pivot_wider(names_from = "AC_CLASS", values_from = AVG_ATTT)
 
-if(params$icao %in% c("EDDR","EGLC")){
-  g1 <- turn_pa %>%
-  plot_ly(x = ~YEAR) %>%
-  add_bars(y = ~MJ, name = "Medium Jet") %>%
-  add_bars(y = ~MT, name = "Medium Prop")
-}else{
-  g1 <- turn_pa %>%
-  plot_ly(x = ~YEAR) %>%
-  add_bars(y = ~H,  name = "Heavy") %>%
-  add_bars(y = ~MJ, name = "Medium Jet") %>%
-  add_bars(y = ~MT, name = "Medium Prop")
+#if(params$icao %in% c("EDDR","EGLC")){
+#  g1 <- turn_pa %>%
+#  plot_ly(x = ~YEAR) %>%
+#  add_bars(y = ~MJ, name = "Medium Jet") %>%
+#  add_bars(y = ~MT, name = "Medium Prop")
+#}else{
+#  g1 <- turn_pa %>%
+#  plot_ly(x = ~YEAR) %>%
+#  add_bars(y = ~H,  name = "Heavy") %>%
+#  add_bars(y = ~MJ, name = "Medium Jet") %>%
+#  add_bars(y = ~MT, name = "Medium Prop")
+#}
+
+# define the possible aircraft class names
+nice_names <- tribble(~CLASS, ~NAME
+                       ,"H"  , "Heavy"
+                       ,"MJ" , "Medium Jet"
+                       ,"MT" , "Medium Turboprop"
+                       ,"LJ" , "Light Jet"
+                       ,"LT" , "Light Turboprop"
+                       ,"LP" , "Light Piston")
+
+# check for aircraft classes in data
+col_names <- colnames(turn_pa)[-1]  # remove first col = YEAR (no ac-class!)
+
+# setup plot
+g1 <- turn_pa %>% plot_ly(x = ~YEAR)
+
+# iterate over all aircraft class columns
+for(my_class in col_names){
+  g1 <- g1 %>% 
+    add_bars( y    = as.formula(paste0("~`", CLASS, "`"))
+             ,name = nice_names$NAME[nice_names$CLASS == my_class])
 }
 
+# pimp the vis
 g1 <- g1 %>%
   layout( xaxis = list(title = "", type = "category")
          ,yaxis = list(title = "Average turnaround time [min]"
