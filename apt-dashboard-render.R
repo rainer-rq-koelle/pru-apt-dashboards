@@ -34,17 +34,17 @@ min_year <- 2016 # by definition 5 years, i.e. 2016-2020
 
 # PICK AIRPORTS -------------------------------------------------
 # TO LIMIT TEST LOAD SUBSET FOR "TEST" AIRPORTS
-apts <- c("EGLL","EBBR", "LEMD")
+# apts <- c("EGLL","EBBR", "LEMD")
 # TO-DO TROUBLE SHOOTING ----------------------------------------
 # THE FOLLOWING AIRPORT DBs DO NOT RENDER - CHECK WHAT THROWS ERRORS
-# nope <- c("EGNT","ENBR","ENVA","ENZV","GCFV","LCLK","LFBO","LFML","LIMF","WSSS") 
-# apts <- list.files("./data-ad-charts/", pattern = "[A-Z]{4}\\.png") %>% strtrim(4)
-# apts <- setdiff(apts, nope)
+nope <- c("EGNT","ENBR","ENVA","ENZV","GCFV","LCLK","LFBO","LFML","LIMF","WSSS")
+apts <- list.files("./data-ad-charts/", pattern = "[A-Z]{4}\\.png") %>% strtrim(4)
+apts <- setdiff(apts, nope)
 
 ## ------------ READ IN DATA TABLES FROM DOWNLOAD POINT ------------------
 #
 # Thierry's dashboard table
-db_df <- readr::read_csv2("./data/STAT_AIRPORT_MONTHLY.csv")
+db_df <- readr::read_csv2("./data/STAT_AIRPORT_MONTHLY_DATA.csv")
 
 db_conf <- readr::read_csv2("./data/STAT_AIRPORT_CONFIGURATION.csv")
 
@@ -247,8 +247,11 @@ pack_thru <- function(.df, .apt){
 #
 ## ------------ RENDER DASHBOARDS -------------------------------------
 
-
+# apt_range <- 2:2
+apt_range <- 1:length(apts)
+# apt_range <- c(1, 5, 7)
 apts %>%
+  magrittr::extract(apt_range) %>%
   purrr::walk(
     .f=~rmarkdown::render(
       input  = "apt-dashboard.Rmd"   # master flexdashboard Rmd

@@ -29,6 +29,7 @@ fs::file_copy(files_in, files_out, overwrite = TRUE)
 # AIRPORT from COVID
 basedir <- 'G:/HQ/dgof-pru/Data/DataProcessing/Covid19'
 file_in <- fs::path_abs("1_Top_100_Airport_dep+arr_traffic_LTFM+LTBA (Synthesis).xlsx", start = basedir)
+# file_in <- fs::path_abs("1_Top_100_Airport_dep+arr_traffic(Synthesis).xlsx", start = basedir)
 file_out <- fs::path_abs("COVID-AIRPORT.xlsx", start = here::here("data"))
 
 fs::file_copy(file_in, file_out, overwrite = TRUE)
