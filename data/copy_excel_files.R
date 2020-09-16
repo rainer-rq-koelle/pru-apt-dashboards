@@ -12,6 +12,14 @@ filenames <- c(
   "Taxi-Out_Additional_Time.xlsx"
 )
 
+# for Sharepoint mapped drive
+# basedir <- "https://coll.eurocontrol.int/sites/pru/dashboard/Data"
+# files_in <- paste(basedir, filenames, sep = "/")
+# purrr::walk2(
+#   files_in,
+#   files_out,
+#   ~ download.file(.x, .y, method = "wininet", quiet = TRUE))
+
 files_in <- fs::path_abs(filenames, start = basedir)
 files_out <- fs::path_abs(filenames, start = here::here("data"))
 
