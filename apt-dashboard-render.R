@@ -235,14 +235,16 @@ trim_covid <- function(.df, .apt){
 }
 #
 pack_thru <- function(.df, .apt){
-  df <- .df %>% filter(APT_ICAO == .apt) %>%
-    mutate(DATE = lubridate::dmy(DAY, tz="UTC")
-           ,YEAR = year(DATE), MONTH_NUM = month(DATE)
-           , WEEKDAY = lubridate::wday(DATE, label=TRUE)) %>%
-    filter(YEAR == max(YEAR)) %>% filter(MONTH_NUM == max(MONTH_NUM)) %>%
-    select(APT_ICAO, YEAR, MONTH_NUM, DATE, WEEKDAY, TIME, ROLLING_HOUR_MVT, PHASE) %>%
-    group_by(YEAR, MONTH_NUM, TIME, PHASE) %>% summarise(ROLLING_HOUR_MVT = mean(ROLLING_HOUR_MVT)) %>%
-    ungroup()
+  df <- .df %>% dplyr::filter(APT_ICAO == .apt) %>%
+    dplyr::mutate(
+      # DATE = lubridate::dmy(DAY, tz="UTC")
+      DATE = DAY
+      ,YEAR = year(DATE), MONTH_NUM = month(DATE)
+     , WEEKDAY = lubridate::wday(DATE, label=TRUE)) %>%
+    dplyr::filter(YEAR == max(YEAR)) %>% filter(MONTH_NUM == max(MONTH_NUM)) %>%
+    dplyr::select(APT_ICAO, YEAR, MONTH_NUM, DATE, WEEKDAY, TIME, ROLLING_HOUR_MVT, PHASE) %>%
+    dplyr::group_by(YEAR, MONTH_NUM, TIME, PHASE) %>% summarise(ROLLING_HOUR_MVT = mean(ROLLING_HOUR_MVT)) %>%
+    dplyr::ungroup()
 }
 #
 ## ------------ RENDER DASHBOARDS -------------------------------------

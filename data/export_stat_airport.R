@@ -63,7 +63,8 @@ export_stat_airport_turn_around <- function() {
 export_stat_airport_throughput <- function() {
   query <- "SELECT * FROM PRU_AIRPORT.STAT_AIRPORT_THROUGHPUT"
   
-  export_query("PRU_AIRPORT", query)
+  export_query("PRU_AIRPORT", query) %>% 
+    dplyr::mutate(DAY = lubridate::as_date(DAY))
 }
 
 export_stat_airport_configuration <- function() {
