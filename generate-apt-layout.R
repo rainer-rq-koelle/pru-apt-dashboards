@@ -1,9 +1,13 @@
 library(readr)
 library(dplyr)
-library(osmdata)
+# at least osmdata 1.3.011, eventually install from github
+# remotes::install_github("ropensci/osmdata")
+library(osmdata) 
 library(sf)
 library(ggspatial)
 library(ggplot2)
+library(forcats)
+library(stringr)
 
 save_osm_apt <- function(
   .gg,
@@ -29,6 +33,7 @@ osm_apt <- function(
       )
     ) %>%
     osmdata_sf() %>%
+    unname_osmdata_sf() %>%
     unique_osmdata()
 
   gg <- ggplot() +
@@ -36,8 +41,13 @@ osm_apt <- function(
       data = q$osm_polygons,
       inherit.aes = FALSE,
       color = "lightblue"
-      # ,fill  = "lightblue"
     ) +
+    # ----multipolygon ----
+    geom_sf(
+      data = q$osm_multipolygons,
+      #inherit.aes = FALSE,
+      color = "lightblue") +
+    ##
     geom_sf(
       data = q$osm_lines %>% filter(aeroway != "runway"),
       color = "grey"
@@ -49,6 +59,12 @@ osm_apt <- function(
       size = 2 # .4
       , alpha = .8
     ) +
+    # ----- multipolygon runway
+    geom_sf(
+      data = q$osm_polygons %>% filter(aeroway == "runway"),
+      inherit.aes = FALSE,
+      fill = "black",
+      alpha = .8) +
     theme_void()
 
   # if(!is.null(.title)){
@@ -70,29 +86,33 @@ bb_coerce <- function(.bb_lnglat_string){
   return(bb)
 }
 
-geom_airport <- function(apt_icao) {
-  apt <- aaa %>%
-    filter(APT_ICAO == apt_icao)
-  apt_name <- apt["APT_NAME"]
-  bb_lonlat <- apt %>% pull(BBOX) %>% bb_coerce()
+
+nth_group <- function(x, n) x %>%
+  select(group_cols()) %>%
+  distinct %>%
+  ungroup %>%
+  slice(n) %>%
+  { semi_join(x, .)}
+
+
+geom_airport <- function(apt_df) {
+  apt_icao  <- apt_df %>% pull(.data$icao) %>% unique()
+  apt_name  <- apt_df %>% pull(.data$APT_NAME) %>% unique()
+  bb_lonlat <- apt_df %>% pull(.data$BBOX)     %>% unique() %>% bb_coerce()
   
-  rwy <- rrr %>% 
-    filter(airport_ident == apt_icao)
-  
-  q <- opq(bbox = bb_lonlat) %>% 
-    add_osm_feature(
-      key = "aeroway"
-      ,value =c("aerodrome", "apron", "control_tower", "gate", "hangar"
-                ,"helipad", "runway", "taxiway", "terminal") ) %>% 
-    osmdata_sf() %>%
-    unique_osmdata()
-  
-  gg <- osm_apt(bb_lonlat, .add_north = TRUE) +
-    geom_label(data = rwy, mapping = aes(x = le_longitude_deg, y = le_latitude_deg, label = le_ident, angle = le_heading_degT)) +
-    geom_label(data = rwy, mapping = aes(x = he_longitude_deg, y = he_latitude_deg, label = he_ident, angle = he_heading_degT))
+  gg_base <- osm_apt(bb_lonlat, .add_north = TRUE)
+  gg <- gg_base +
+    coord_sf(crs = "+proj=longlat +datum=WGS84") +
+    geom_label(data = apt_df,
+               mapping = aes(x = le_longitude_deg, y = le_latitude_deg,
+                             label = le_ident, angle = le_heading_degT)) +
+    geom_label(data = apt_df,
+               mapping = aes(x = he_longitude_deg, y = he_latitude_deg,
+                             label = he_ident, angle = he_heading_degT))
   
   save_osm_apt(gg, apt_icao, .dir = "data-ad-rwy-charts")  
 }
+
 
 # apt_url <- "https://ourairports.com/data/airports.csv"
 apt_url <- here::here("data", "airports.csv")
@@ -107,23 +127,38 @@ apts_pru <- "STAT_AIRPORT_INFO.csv" %>%
   here::here("data", .) %>%
   read_csv2()
 
-apts <- read_csv(apt_url)
-rwys <- read_csv(rwy_url)
+apts <- read_csv(apt_url) %>%
+  select(ident, latitude_deg, longitude_deg)
+rwys <- read_csv(rwy_url) %>%
+  mutate(closed = as.logical(closed)) %>%
+  # prefix 1-digit RWY id with a 0
+  mutate(le_ident = if_else(str_length(le_ident) == 1 & str_detect(le_ident, "\\d"),
+                            paste0("0", le_ident),
+                            le_ident))
+rrr <- rwys %>%
+  # exclude closed runways
+  filter(closed == FALSE) %>%
+  # exclude EGPD rwys apart from the "16" (and "34")
+  filter(!(airport_ident == "EGPD" & !le_ident %in% c("16"))) %>%
+  filter(!(airport_ident == "LKPR" & le_ident %in% c("04"))) %>%
+  filter(!(airport_ident == "LPPT" & le_ident %in% c("17"))) %>%
+  # keep only certain attributes
+  select(airport_ident,
+         le_ident, le_longitude_deg, le_latitude_deg, le_ident, le_heading_degT,
+         he_ident, he_longitude_deg, he_latitude_deg, he_ident, he_heading_degT)
+
+  
 
 aaa <- apts_pru %>%
   left_join(apts, by = c("APT_ICAO" = "ident")) %>%
-  left_join(apdf_apts, by = c("APT_ICAO" = "AIRPORT"), suffix = c("", "y")) %>%
-  select(APT_ICAO, APT_IATA, APT_NAME, APT_COUNTRY, ICAO_LABEL, IATA_LABEL,
-         longitude_deg, latitude_deg, elevation_ft, BBOX)
+  left_join(apdf_apts, by = c("APT_ICAO" = "AIRPORT"), suffix = c("", ".y")) %>%
+  select(-ends_with(".y")) %>%
+  left_join(rrr, by = c("APT_ICAO" = "airport_ident"))
 
-rrr <- rwys %>%
-  # exclude EGPD rwys apart from the "16" (and "34")
-  filter(!(airport_ident == "EGPD" & !le_ident %in% c("16"))) %>%
-  filter(!(airport_ident == "LKPR" & le_ident %in% c("4"))) %>%
-  filter(!(airport_ident == "LPPT" & le_ident %in% c("17")))
 
 # generate ALL
 aaa %>%
-  pull(APT_ICAO) %>%
-  purrr::walk(.f = geom_airport)
+  group_by(APT_ICAO) %>%
+  mutate(icao = APT_ICAO) %>%
+  group_walk(~ geom_airport(.x))
 
