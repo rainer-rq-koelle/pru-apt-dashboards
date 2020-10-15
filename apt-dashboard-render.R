@@ -134,13 +134,13 @@ source(here::here("R", "utils.R"), encoding = "UTF8")
 #
 ## ------------ RENDER DASHBOARDS -------------------------------------
 ## TEST ##
-apt <- "EBBR"
-p <- prepare_params(apt)
-rmarkdown::render(
-  input  = "apt-dashboard.Rmd",   # master flexdashboard Rmd
-  params = p,
-  output_file = here::here("docs", paste0(apt, ".html"))
-)
+# apt <- "EBBR"
+# cucu <- prepare_params(apt)
+# rmarkdown::render(
+#   input  = "apt-dashboard.Rmd",   # master flexdashboard Rmd
+#   params = cucu,
+#   output_file = here::here("docs", paste0(apt, ".html"))
+# )
 
 
 # apt_range <- 2:2

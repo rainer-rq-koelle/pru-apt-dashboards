@@ -1,4 +1,23 @@
 ---
+# params:
+#   icao:   !r cucu$icao
+#   iata:   !r cucu$iata
+#   name:   !r cucu$name
+#   state:  !r cucu$state
+#   config: !r cucu$config
+#   ldgsum: !r cucu$ldgsum
+#   latest: !r cucu$latest
+#   covid:  !r cucu$covid
+#   tfc:    !r cucu$tfc
+#   thru:   !r cucu$thru
+#   atfm:   !r cucu$atfm
+#   slot:   !r cucu$slot
+#   asma:   !r cucu$asma
+#   txot:   !r cucu$txot
+#   txit:   !r cucu$txit
+#   pddly:  !r cucu$pddly
+#   turn:   !r cucu$turn
+#   punc:   !r cucu$punc
 params:
   icao: "XXXX"
   iata: "YYY"
@@ -56,8 +75,12 @@ library(dplyr)
 library(tidyr)
 library(plotly)
 library(magick)
+
+knitr::opts_chunk$set(
+  eval = TRUE
+)
 ```
-```{r plotly-utility}
+```{r plotly-utility, eval=TRUE}
 tick_yr <- list(dtick = 1
     ,ticktext = list("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
     ,tickvals = list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
@@ -92,7 +115,7 @@ config_bar_remove_buttons <- c(
 
 ### Aerodrome Layout
 
-```{r}
+```{r, eval=TRUE}
 filename <- paste("data-ad-charts/", params$icao, ".png", sep="") 
 ad_chart <- magick::image_read(filename)
 if(params$icao %in% c("EHAM", "LEMD", "LSZH")){
@@ -104,7 +127,7 @@ ad_chart %>% image_trim()
 
 ### General
 
-```{r apt-id}
+```{r apt-id, eval=TRUE}
 id_tbl <- tribble(
    ~ITEM       , ~TEXT1       , ~TEXT2
   ,"Airport"   , params$name  , ""
@@ -141,7 +164,9 @@ id_tbl %>%
          dom             = "t"        # show only table)
       ,  ordering        = FALSE      # no order arrows/functionality
       ,  autoWidth = TRUE
-      , columnDefs = list(list(width = '150px', targets = c(0))) # set 1st col
+      , columnDefs = list(list(
+        width = '150px',
+        targets = c(0))) # set 1st col
       , scrollX = TRUE
     ) # end options list ------------------------------
     # remove table header and order arrows ~ overwrite with empty names
@@ -163,7 +188,7 @@ id_tbl %>%
 
 ### Summary
 
-```{r front-page-table}
+```{r front-page-table, eval=TRUE}
 source("./R/prepare_frontpage_DT_Rel1.R")
 
 out <- prepare_front_page_DT(params$icao, params$tfc, params$asma, params$txot, params$atfm
@@ -206,17 +231,17 @@ if(nrow(params$covid) < 1){
   cat("<p><b>COVID19 traffic evolution for this airport under development!</b>")
 }else{
   
-fig1 <- params$covid %>% 
+fig1 <- params$covid %>%
   plot_ly() %>%
   add_lines(x=~DAY, y=~FLTS_2020, name = "Movements 2020") %>%
   add_lines(x=~DAY, y=~FLTS_2019, name = "Movements 2019"
             , line = list(dash = "dot", color = "red")) %>%
   layout(yaxis = list(title = "movements"))
 
-fig2 <- params$covid %>% 
+fig2 <- params$covid %>%
   plot_ly() %>%
-  add_lines(x=~DAY, y=~MOV_AVG_WK, name = "Moving Weekly Average", showlegend=FALSE) %>% 
-  layout( xaxis = list(title = "") 
+  add_lines(x=~DAY, y=~MOV_AVG_WK, name = "Moving Weekly Average", showlegend=FALSE) %>%
+  layout( xaxis = list(title = "")
          ,yaxis = list(title = "% change from 2019"
                       ,titlefont = list(size = 11)
                       ,tickformat = "%"))
@@ -248,7 +273,7 @@ mvts_last<- mvts_thisyear %>% filter(MONTH_NUM == max_mth) %>%
 mvts_ytd <- (mvts_last - mvts_jan) / mvts_jan
 -->
 
-```{r}
+```{r, eval=TRUE}
 # annual bar chart
 mvts_pa <- params$tfc %>% select(YEAR, FLT_TOT_1 ) %>%
   group_by(YEAR) %>%
@@ -287,7 +312,7 @@ xax <- list(title="")
 yax <- list(title="Number of flights", titlefont = list(size = 11))
 
 mvts_pa %>%
-  plot_ly(x = ~YEAR, y = ~FLT_TOT) %>%
+  plot_ly(x = ~YEAR, y = ~FLT_TOT, width = 300, height = 300) %>%
   add_trace(type = "bar", name = "Traffic"
             ,hoverinfo = "text"
             ,hovertemplate = paste(
@@ -305,7 +330,7 @@ config( displaylogo = FALSE
 ### Annual Variation of Daily Movements 
 <!-- add this behind header to size box {data-width=300} -->
 
-```{r}
+```{r, eval=TRUE}
 tmp <- params$tfc %>%
   select(YEAR, DATE = FLT_DATE, FLT_DEP_1, FLT_ARR_1) %>%
   pivot_longer(cols = starts_with("FLT_"), names_to = "PHASE", values_to = "MVTS") %>%
@@ -591,7 +616,9 @@ if(nrow(worst_day_last_year) >= 5){
 p <- tmp %>%
   plot_ly(x = ~FLT_DATE, y = ~TOT_ARR_ATFM
           , type = 'scatter', mode = 'lines'
-          , line = list(shape = "hvh", width = 1)
+          , line = list(shape = "hvh"
+                        ,width = 1
+                        )
           ) %>%
   add_annotations(text = key_msg
                   , x = worst_day_date, y = worst_day_dly
@@ -794,7 +821,9 @@ tmp <- params$asma %>%
 p <- tmp %>%
   plot_ly(x = ~DATE_YM, y = ~AVG_ADD_ASMA
           , type = 'scatter', mode = 'lines'
-          , line = list(shape = "hvh", width = 1)
+          , line = list(shape = "hvh"
+                        , width = 1
+                        )
           ) %>%
   layout( hoverformat = ".2f" 
          ,xaxis = list(title = ""
