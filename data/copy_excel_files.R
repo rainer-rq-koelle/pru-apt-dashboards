@@ -3,7 +3,7 @@
 library(fs)
 
 # AIRPORT from AIU Portal
-basedir <- "C:/Users/spi/repos/pru-portal/static/download/xls"
+basedir <- "../pru-portal/static/download/xls"
 filenames <- c(
   "Airport_Traffic.xlsx",
   "Airport_Arrival_ATFM_Delay.xlsx",
