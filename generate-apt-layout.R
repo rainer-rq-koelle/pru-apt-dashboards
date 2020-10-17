@@ -87,12 +87,14 @@ bb_coerce <- function(.bb_lnglat_string){
 }
 
 
-nth_group <- function(x, n) x %>%
-  select(group_cols()) %>%
-  distinct %>%
-  ungroup %>%
-  slice(n) %>%
-  { semi_join(x, .)}
+nth_group <- function(x, n) {
+  x %>%
+    select(group_cols()) %>%
+    distinct %>%
+    ungroup %>%
+    slice(n) %>%
+    { semi_join(x, .)}
+}
 
 
 geom_airport <- function(apt_df) {
@@ -160,5 +162,24 @@ aaa <- apts_pru %>%
 aaa %>%
   group_by(APT_ICAO) %>%
   mutate(icao = APT_ICAO) %>%
+  # filter out but group position
+  # nth_group(2) %>% 
+  # of airport's ICAO id(s)
+  # filter(icao %in% c("EHAM", "LEMD", "LSZH")) %>% 
   group_walk(~ geom_airport(.x))
 
+# refine pngs
+refine_png <- function(img_in) {
+  ad_chart <- magick::image_read(img_in)
+  
+  if(fs::path_file(img_in) %in% c("EHAM.png", "LEMD.png", "LSZH.png")){
+    angle <- 300
+    ad_chart <- ad_chart %>% magick::image_rotate(angle)
+  }
+  ad_chart %>%
+    image_trim() %>% 
+    image_write(img_in)
+}
+
+fs::dir_ls(path = "data-ad-rwy-charts/") %>% 
+  purrr::walk(.f = refine_png)
