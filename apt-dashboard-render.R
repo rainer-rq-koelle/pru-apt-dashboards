@@ -39,8 +39,8 @@ min_year <- 2016 # by definition 5 years, i.e. 2016-2020
 # THE FOLLOWING AIRPORT DBs DO NOT RENDER - CHECK WHAT THROWS ERRORS
 nope <- c("EGNT","ENBR","ENVA","ENZV","GCFV","LCLK","LFBO","LFML","LIMF","WSSS")
 # nope <- c("XXXX")
-#apts <- list.files("./data-ad-rwy-charts/", pattern = "[A-Z]{4}\\.png") %>% strtrim(4)
-apts <- list.files("./data-ad-charts/", pattern = "[A-Z]{4}\\.png") %>% strtrim(4)
+apts <- list.files("./data-ad-rwy-charts/", pattern = "[A-Z]{4}\\.png") %>% strtrim(4)
+# apts <- list.files("./data-ad-charts/", pattern = "[A-Z]{4}\\.png") %>% strtrim(4)
 apts <- setdiff(apts, nope)
 
 ## ------------ READ IN DATA TABLES FROM DOWNLOAD POINT ------------------
@@ -144,13 +144,15 @@ source(here::here("R", "utils.R"), encoding = "UTF8")
 
 
 # apt_range <- 2:2
-apt_range <- c(1, 5, 7)
+# apt_range <- c(1, 5, 7)
 apt_range <- 1:length(apts)
 apts %>%
   magrittr::extract(apt_range) %>%
+  # under DEBUG: filter
+  # c("EHAM", "LEMD", "LSZH") %>% 
   purrr::walk(
-    .f=~rmarkdown::render(
-      input  = "apt-dashboard.Rmd"   # master flexdashboard Rmd
+    .f = ~rmarkdown::render(
+      input = "apt-dashboard.Rmd"   # master flexdashboard Rmd
       , params = prepare_params(.)
       # output_dir DEACTIVATED and included in output_file name
       # brittle as reported in stackoverflow #  , output_dir = "./boards"

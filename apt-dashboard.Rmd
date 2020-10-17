@@ -43,13 +43,14 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows # columns
     logo: "euctrl-logo-noname_48x48.png"
+    lib_dir: 'docs/libs'
   #  logo: ECTRL-logo.png
   #  navbar:
   #    - { icon: "fa-question-circle", href: "https://google.com", align: right }
     #vertical_layout: scroll # fill # forces filled page (not good for multiple charts)
     # speeding up plotly --> https://www.timlrx.com/2019/12/17/speeding-up-r-plotly-webapps-r-x-javascript-part-i/
   #  mathjax: NULL          # no math symbols/equations used
-    self_contained: TRUE # FALSE  # do not include plotly libs in html output
+    self_contained: FALSE # FALSE  # do not include plotly libs in html output
 ---
 
 <script>
@@ -76,11 +77,12 @@ library(tidyr)
 library(plotly)
 library(magick)
 
-knitr::opts_chunk$set(
-  eval = TRUE
-)
+# knitr::opts_chunk$set(
+#   fig.path="docs/layouts/"
+# )
 ```
-```{r plotly-utility, eval=TRUE}
+
+```{r plotly-utility}
 tick_yr <- list(dtick = 1
     ,ticktext = list("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
     ,tickvals = list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
@@ -115,19 +117,15 @@ config_bar_remove_buttons <- c(
 
 ### Aerodrome Layout
 
-```{r, eval=TRUE}
-filename <- paste("data-ad-charts/", params$icao, ".png", sep="") 
-ad_chart <- magick::image_read(filename)
-if(params$icao %in% c("EHAM", "LEMD", "LSZH")){
-  angle <- 300
-  ad_chart <- ad_chart %>% magick::image_rotate(angle)
-}
-ad_chart %>% image_trim()
+```{r airport-layout}
+fs::file_copy(paste0("data-ad-rwy-charts/", params$icao, ".png"),
+              paste0("docs/", params$icao, ".png"), overwrite = TRUE)
+knitr::include_graphics(paste0("docs/", params$icao, ".png"))
 ```
 
 ### General
 
-```{r apt-id, eval=TRUE}
+```{r apt-id}
 id_tbl <- tribble(
    ~ITEM       , ~TEXT1       , ~TEXT2
   ,"Airport"   , params$name  , ""
@@ -188,7 +186,7 @@ id_tbl %>%
 
 ### Summary
 
-```{r front-page-table, eval=TRUE}
+```{r front-page-table}
 source("./R/prepare_frontpage_DT_Rel1.R")
 
 out <- prepare_front_page_DT(params$icao, params$tfc, params$asma, params$txot, params$atfm
@@ -273,7 +271,7 @@ mvts_last<- mvts_thisyear %>% filter(MONTH_NUM == max_mth) %>%
 mvts_ytd <- (mvts_last - mvts_jan) / mvts_jan
 -->
 
-```{r, eval=TRUE}
+```{r}
 # annual bar chart
 mvts_pa <- params$tfc %>% select(YEAR, FLT_TOT_1 ) %>%
   group_by(YEAR) %>%
@@ -312,7 +310,7 @@ xax <- list(title="")
 yax <- list(title="Number of flights", titlefont = list(size = 11))
 
 mvts_pa %>%
-  plot_ly(x = ~YEAR, y = ~FLT_TOT, width = 300, height = 300) %>%
+  plot_ly(x = ~YEAR, y = ~FLT_TOT) %>%
   add_trace(type = "bar", name = "Traffic"
             ,hoverinfo = "text"
             ,hovertemplate = paste(
@@ -330,7 +328,7 @@ config( displaylogo = FALSE
 ### Annual Variation of Daily Movements 
 <!-- add this behind header to size box {data-width=300} -->
 
-```{r, eval=TRUE}
+```{r}
 tmp <- params$tfc %>%
   select(YEAR, DATE = FLT_DATE, FLT_DEP_1, FLT_ARR_1) %>%
   pivot_longer(cols = starts_with("FLT_"), names_to = "PHASE", values_to = "MVTS") %>%
