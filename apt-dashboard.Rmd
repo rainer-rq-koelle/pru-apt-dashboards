@@ -42,7 +42,8 @@ author: "AIU Home"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows # columns
-    logo: "euctrl-logo-noname_48x48.png"
+    logo: "/images/euctrl-logo-noname_48x48.png"
+    favicon: "/favicon.png"
     lib_dir: 'docs/libs'
   #  logo: ECTRL-logo.png
   #  navbar:
