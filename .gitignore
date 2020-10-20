@@ -33,3 +33,5 @@ vignettes/*.pdf
 ####
 factsheets/
 !factsheets/*.pdf
+
+.DS_Store
