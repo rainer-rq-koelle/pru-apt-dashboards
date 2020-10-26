@@ -73,7 +73,8 @@ ds <- ds %>%
     "VAR_DLY" = "Daily Variation", "VAR_WKLY" = "Weekly Variation",
     "MOV_AVG_WK" = "Weekly Moving Average"
     # ,"DAY2019" = "...11"
-)
+  ) %>% 
+  mutate(Day = lubridate::as_date(Day))
 
 # merge ICAO with ds
 ds <- ds %>%
