@@ -6,7 +6,7 @@
 # and supplies it to the parameterized dashboard Rmd.
 #
 # DONE:
-# 1. processing pipeline read/extract data from PRISME to remove by hand download.
+# 1. processing pipeline read/extract data from PRISME to remove manual download.
 #    SEE: data/export_stat_airport.R
 # 1a.download prepared data files from sharepoint release archive/repo
 #    https://coll.eurocontrol.int/sites/pru/dashboard/Data/ --> check for latest release
@@ -46,9 +46,9 @@ apts <- setdiff(apts, nope)
 ## ------------ READ IN DATA TABLES FROM DOWNLOAD POINT ------------------
 #
 # Thierry's dashboard table
-db_df <- readr::read_csv2("./data/STAT_AIRPORT_MONTHLY_DATA.csv")
+db_df <- readr::read_csv2("./data/STAT_AIRPORT_MONTHLY_DATA.csv.gz")
 
-db_conf <- readr::read_csv2("./data/STAT_AIRPORT_CONFIGURATION.csv")
+db_conf <- readr::read_csv2("./data/STAT_AIRPORT_CONFIGURATION.csv.gz")
 
 # traffic counts and ids
 tfc_df <- readxl::read_excel("./data/Airport_Traffic.xlsx", sheet = "DATA"
@@ -63,7 +63,7 @@ config_df <- db_conf %>%
   select(APT_ICAO, YEAR, CONFIGURATION, SHARE_PCT) %>%
   arrange(desc(SHARE_PCT))
 
-thru_df <- readr::read_csv2("./data/STAT_AIRPORT_THROUGHPUT.csv") %>% rename(APT_ICAO = AIRPORT)
+thru_df <- readr::read_csv2("./data/STAT_AIRPORT_THROUGHPUT.csv.gz") %>% rename(APT_ICAO = AIRPORT)
 
 atfm_df <- readxl::read_excel("./data/Airport_Arrival_ATFM_Delay.xlsx", sheet = "DATA") %>%
   mutate(FLT_DATE = lubridate::date(FLT_DATE)) %>%
@@ -116,7 +116,7 @@ pddly_df <- db_df %>%
   )
 
 #turn_df <- readr::read_csv("./data-test/STAT_AIRPORT_DATA_TURN.csv") %>% rename(APT_ICAO = APT)
-turn_df <- readr::read_csv2("./data/STAT_AIRPORT_TURN_AROUND.csv") %>%
+turn_df <- readr::read_csv2("./data/STAT_AIRPORT_TURN_AROUND.csv.gz") %>%
   select(APT_ICAO, YEAR, MONTH_NUM, AC_CLASS
          ,N = NB_TURN_ARROUND
          ,TOT_SDTT_MIN, TOT_ACTT_MIN, TOT_ADTT_MIN) %>%
