@@ -9,12 +9,10 @@
 # DONE:
 # 1. processing pipeline read/extract data from PRISME to remove manual download.
 #    SEE: data/export_stat_airport.R
-# 1a.download prepared data files from sharepoint release archive/repo
-#    https://coll.eurocontrol.int/sites/pru/dashboard/Data/ --> check for latest release
-#    traffic and atfm
-#    or download data from blog portal repo:
+# 1a.copy data from blog portal repo:
 #    https://github.com/euctrl-pru/portal/tree/master/static/download/xls
-#    SEE: data/export_stat_airport.R ; it assumes they are in the repo pru-portal
+#    SEE: data/copy_excel_files.R ; it assumes they are in the repo pru-portal
+#         located at ../pru-portal
 #
 # To-Do
 # 2. reduce data load by cleaning the input data tables
