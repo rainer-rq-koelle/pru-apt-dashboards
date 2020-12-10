@@ -5,6 +5,7 @@
 # The render script reads all "input data" trims it for the ICAO location 
 # and supplies it to the parameterized dashboard Rmd.
 #
+# IMPORTANT: install htmlwidgets >= 1.5.2 from CRAN in order to avoid CSS units issues
 # DONE:
 # 1. processing pipeline read/extract data from PRISME to remove manual download.
 #    SEE: data/export_stat_airport.R
