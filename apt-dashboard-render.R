@@ -28,6 +28,8 @@ library("purrr")
 library("readxl")
 library(formattable)
 library(sparkline)
+library(flexdashboard)
+library(plotly)
 
 min_year <- 2016 # by definition 5 years, i.e. 2016-2020
 
@@ -143,7 +145,7 @@ source(here::here("R", "utils.R"), encoding = "UTF8")
 
 
 # apt_range <- 2:2
-# apt_range <- c(1, 5, 7)
+apt_range <- c(1, 5, 7)
 apt_range <- 1:length(apts)
 apts %>%
   magrittr::extract(apt_range) %>%
