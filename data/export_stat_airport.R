@@ -73,9 +73,6 @@ export_stat_airport_configuration <- function() {
   export_query("PRU_AIRPORT", query)
 }
 
-
-
-
 export_stat_airport_info() %>% 
   readr::write_csv2(here::here("data","STAT_AIRPORT_INFO.csv"))
 
@@ -90,4 +87,3 @@ export_stat_airport_configuration() %>%
 
 export_stat_airport_throughput() %>% 
   readr::write_csv2(here::here("data","STAT_AIRPORT_THROUGHPUT.csv"))
-
