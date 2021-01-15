@@ -126,7 +126,7 @@ turn_df <- readr::read_csv2("./data/STAT_AIRPORT_TURN_AROUND.csv") %>%
 
 # punc_df <-  readr::read_csv("./data-test/STAT_AIRPORT_DATA_PUNC.csv") %>% rename(APT_ICAO = APT)
 
-covid_df <- readr::read_csv("./data/COVID_AIRPORT.csv")
+covid_df <- readr::read_csv("./data/COVID_AIRPORT.csv.gz")
 
 ## ------------ UTILITY FUNCTIONS -------------------------------------
 #
