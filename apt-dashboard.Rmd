@@ -223,6 +223,7 @@ out %>%
   #  )
 ```
 
+
 ### COVID19 Snapshot Traffic Evolution (movements and percentage change over time vs 2019)
 
 ```{r covid-snapshot, results='asis'}
@@ -316,7 +317,7 @@ mvts_pa %>%
             ,hoverinfo = "text"
             ,hovertemplate = paste(
                "Year: %{x}"
-              ,"<br>Flights: %{y}" 
+              ,"<br>Flights: %{y:.r}" 
             )) %>% 
   layout(xaxis = xax, yaxis = yax # autosize = F, width = 300, height = 300
          ,annotations = key_msg
@@ -354,6 +355,7 @@ yax <- list(title="Number of flights", rangemode = "tozero",titlefont = list(siz
 mvts_pm %>%
   plot_ly(x = ~MONTH_NUM, y = ~FLT_TOT, group = ~YEAR, color = ~YEAR) %>%
   add_trace( type = 'scatter', mode = 'markers+lines'
+             ,hovertemplate = "%{y:.r}"     # define hoverformtting for y, rounded with no significant digit
              ) %>%
   add_annotations( text = msg
                   , x = mvts_pm_max$MONTH_NUM
@@ -1189,7 +1191,10 @@ pddly_pa$DLY_CAT <- factor(pddly_pa$DLY_CAT
                            ,labels=c("unidentified", "other reasons", "ATC pre-departure <br>delay (code 89)"))
 
 g1 <- pddly_pa %>%
-  plot_ly(x=~YEAR, y=~DLY_DUR, type="bar", color=~DLY_CAT, legendgroup=~DLY_CAT) %>%
+  plot_ly(x=~YEAR, y=~DLY_DUR, type="bar", color=~DLY_CAT, legendgroup=~DLY_CAT
+          # control digits/scientific notation in hover: .r = rounded no digit
+          ,hovertemplate = "%{y:.r}"
+          ) %>%
   layout( barmode = "stack"
          ,hovermode = "x unified" 
          ,xaxis = list(title = "")
@@ -1244,6 +1249,8 @@ button_type_list <-  list(
  
 pddly_pm %>%
   plot_ly(x = ~MONTH_NUM, y = ~DLY_DUR
+          # control digits/scientific notation in hover: .r = rounded no digit
+          ,hovertemplate = "%{y:.r}"
           #https://github.com/ropensci/plotly/issues/1502
         # define mapping variable for transform filter, i.e. cannot link directly to ~YEAR!!!
         , customdata=~YEAR
@@ -1289,6 +1296,8 @@ p <- tmp %>%
           #, type = 'scatter', mode = 'lines'
           #, line = list(shape = "hvh", width = 1)
           , color = ~DLY_CAT
+          # control digits/scientific notation in hover: .r = rounded no digit
+          ,hovertemplate = "%{y:.r}"
           ) %>%
   layout(barmode = "stack"
          # xaxis and rangeselector
