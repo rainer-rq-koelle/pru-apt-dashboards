@@ -799,7 +799,7 @@ asma_pm %>%
   layout( barmode = "stack"
          ,hovermode = "x unified"
          ,xaxis = tick_yr_no_title
-         ,yaxis=list( title="Average ASMA Time [min/arr]"
+         ,yaxis=list( title="Average ASMA time [min/arr]"
                      ,titlefont = list(size = 11)
                      , hoverformat = ".2f")
          ,showlegend = TRUE
