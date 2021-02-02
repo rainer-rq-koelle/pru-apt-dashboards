@@ -107,7 +107,11 @@ prepare_front_page_DT <- function(.icao, .tfc, .asma, .txot, .atfm
   perf2 <- perf %>% calc_current_month()
 
   # extract sparklines, reverse order, i.e. rev(), to have timeline correct
-  tfc_spk   <- sparkline::spk_chr(rev(perf2$FLT_TOT[1:13]))
+  tfc_spk   <- sparkline::spk_chr(rev(perf2$FLT_TOT[1:13])
+                                  # control "spots" on line, invisible = NULL
+                                  , spotColor = NULL       
+                                  , minSpotColor = NULL
+                                  , maxSpotColor = NULL)
   asma_spk  <- sparkline::spk_chr(rev(perf2$AVG_ADD_ASMA[1:13]), type="bar")
   txot_spk  <- sparkline::spk_chr(rev(perf2$AVG_ADD_TXOT[1:13]), type="bar")
   #atfm_spk  <- sparkline::spk_chr(rev(perf2$AVG_ATFM_ADLY[1:13]), type="line")

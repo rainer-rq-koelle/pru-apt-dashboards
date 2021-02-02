@@ -223,7 +223,7 @@ out %>%
   #  )
 ```
 
-### COVID19 Snapshot Traffic Evolution (Movements and Percentage Change 2020 vs 2019)
+### COVID19 Snapshot Traffic Evolution (movements and percentage change over time vs 2019)
 
 ```{r covid-snapshot, results='asis'}
 if(nrow(params$covid) < 1){
@@ -232,10 +232,10 @@ if(nrow(params$covid) < 1){
   
 fig1 <- params$covid %>%
   plot_ly() %>%
-  add_lines(x=~DAY, y=~FLTS_2020, name = "Movements 2020") %>%
+  add_lines(x=~DAY, y=~FLTS_2020, name = "Movements") %>%
   add_lines(x=~DAY, y=~FLTS_2019, name = "Movements 2019"
             , line = list(dash = "dot", color = "red")) %>%
-  layout(yaxis = list(title = "movements"))
+  layout(yaxis = list(title = "Movements"))
 
 fig2 <- params$covid %>%
   plot_ly() %>%
@@ -493,7 +493,8 @@ atfm_pa %>%
          , hovermode = "x unified"
          , xaxis = list(title = "")
          , yaxis = list(title="Average arrival ATFM delay [min/arr]"
-                        ,titlefont = list(size = 11))
+                        ,titlefont = list(size = 11)
+                        ,hoverformat = ".2f")
          ) %>% 
 config( displaylogo = FALSE
        ,modeBarButtonsToRemove = config_bar_remove_buttons)
@@ -571,7 +572,8 @@ atfm_pm %>%
          ,xaxis = tick_yr_no_title
          ,yaxis=list(title="Average arrival ATFM delay [min/arr]"
                      ,titlefont = list(size = 11)
-                     ,rangemode = 'tozero')
+                     ,rangemode = 'tozero'
+                     ,hoverformat = ".2f")
          ,showlegend = TRUE
          ,updatemenus = list( button_type_list )
          ) %>% 
