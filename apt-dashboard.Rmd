@@ -326,28 +326,6 @@ config( displaylogo = FALSE
            )
 ```
 
-### Annual Variation of Daily Movements 
-<!-- add this behind header to size box {data-width=300} -->
-
-```{r}
-tmp <- params$tfc %>%
-  select(YEAR, DATE = FLT_DATE, FLT_DEP_1, FLT_ARR_1) %>%
-  pivot_longer(cols = starts_with("FLT_"), names_to = "PHASE", values_to = "MVTS") %>%
-  separate(PHASE, into = c(NA, "PHASE", NA), sep = "_")
-
-xax <- list(title = "")
-yax <- list(title = "Movements per day",titlefont = list(size = 11))
-
-pbox_group <- tmp %>%
-  plot_ly(x = ~YEAR, y = ~MVTS, color = ~PHASE, type = "box") %>%
-  layout(boxmode = "group", xaxis=xax, yaxis=yax) %>%
-  config( displaylogo = FALSE
-         ,modeBarButtonsToRemove = config_bar_remove_buttons)
-pbox_group
-```
-
-## Row -----------------------------------------------------------
-
 ### Monthly Traffic
 
 ```{r}
@@ -389,6 +367,30 @@ mvts_pm %>%
          ,modeBarButtonsToRemove = config_bar_remove_buttons
            )
 ```
+
+## Row -----------------------------------------------------------
+
+### Annual Variation of Daily Movements 
+
+
+```{r}
+tmp <- params$tfc %>%
+  select(YEAR, DATE = FLT_DATE, FLT_DEP_1, FLT_ARR_1) %>%
+  pivot_longer(cols = starts_with("FLT_"), names_to = "PHASE", values_to = "MVTS") %>%
+  separate(PHASE, into = c(NA, "PHASE", NA), sep = "_")
+
+xax <- list(title = "")
+yax <- list(title = "Movements per day",titlefont = list(size = 11))
+
+pbox_group <- tmp %>%
+  plot_ly(x = ~YEAR, y = ~MVTS, color = ~PHASE, type = "box") %>%
+  layout(boxmode = "group", xaxis=xax, yaxis=yax) %>%
+  config( displaylogo = FALSE
+         ,modeBarButtonsToRemove = config_bar_remove_buttons)
+pbox_group
+```
+
+
 
 ### Average Weekday Hourly Throughput
 
