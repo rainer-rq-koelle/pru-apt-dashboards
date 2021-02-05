@@ -41,6 +41,12 @@ EXPORT_NM_APT_TRAFFIC <- function() {
   QUERY <- "SELECT * FROM PRU_AIRPORT.V_STAT_NM_APT_TRAFFIC"
   EXPORT_QUERY("PRU_AIRPORT", QUERY)
 }
+
+EXPORT_NM_APT_TRAFFIC_MOV_AVG <- function() {
+  qqq <- read_file("data/NM_APT_TRAFFIC_MOV_AVG.SQL")
+  EXPORT_QUERY("PRU_DEV", qqq)
+}
+
 #***************************************************
 # ---- NM APT THROUGHPUT ----
 #***************************************************
@@ -63,6 +69,9 @@ EXPORT_AIRPORT_INFO() %>%
 
 EXPORT_NM_APT_TRAFFIC() %>%
   readr::write_csv2(here::here("data", "NM_APT_TRAFFIC.csv"))
+
+EXPORT_NM_APT_TRAFFIC_MOV_AVG() %>%
+  readr::write_csv2(here::here("data", "NM_APT_TRAFFIC_MOV_AVG.csv"))
 
 EXPORT_NM_APT_THROUGHPUT() %>%
   readr::write_csv2(here::here("data", "NM_APT_THROUGHPUT.csv"))
