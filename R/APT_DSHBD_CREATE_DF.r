@@ -37,11 +37,7 @@ TFC_DF <- read_csv2(here("data", "NM_APT_TRAFFIC.csv"))
 
 # ..NM APT TRAFFIC VARIATION ----
 
-TFC_VAR_DF <- readxl::read_xlsx(
-  path  = here("data", "NM_APT_TRAFFIC_MOV_AVG.xlsx"),
-  sheet = "Sheet 1",
-  range = cell_cols("A:F")
-)
+TFC_VAR_DF <- read_csv2(here("data", "NM_APT_TRAFFIC_MOV_AVG.csv"))
 
 TFC_VAR_DF <- TFC_VAR_DF %>%
   mutate(
@@ -433,7 +429,5 @@ TURN_MM_DF <- APDF_TURN_DF %>%
     AVG_ADTT = TOT_ADTT_MIN / TOT_TURN
   ) %>%
   select(AIRPORT, APT_ICAO, YEAR, MONTH_NUM, AC_CLASS, TOT_TURN, AVG_SDTT, AVG_ACTT, AVG_ADTT)
-
-
 
 # .................----
