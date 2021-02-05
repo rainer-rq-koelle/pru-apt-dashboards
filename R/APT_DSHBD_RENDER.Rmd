@@ -1,0 +1,1511 @@
+---
+params:
+   icao:        $icao
+   iata:        $iata
+   name:        $name
+   state:       $state
+   apdf:        $apdf   
+   config:      $config
+   ldgsum:      $ldgsum
+   latest:      $latest
+   tfcvar:      $tfcvar
+   tfc:         $tfc
+   thru:        $thru
+   atfm:        $atfm   
+   asma_yy:     $asma_yy
+   asma_mm:     $asma_mm
+   txot_yy:     $txot_yy
+   txot_mm:     $txot_mm
+   txin_yy:     $txin_yy
+   txin_mm:     $txin_mm
+   pddly_yy:    $pddly_yy
+   pddly_mm:    $pddly_mm  
+   pddly_avg:   $pddly_avg
+   turn_yy:     $turn_yy
+   turn_mm:     $turn_mm
+
+title         : "`r params$icao`"
+author        : "AIU Home"
+logo          : "./images/euctrl-logo-noname_48x48.png"
+favicon       : "./images/euctrl-logo-noname_48x48.png"
+self_contained: FALSE
+
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+---
+
+<script>
+$('.navbar-logo').wrap('<a href="http://www.eurocontrol.int">');
+$('.navbar-author').wrap('<a href="http://ansperformance.eu">');
+</script>
+
+<style>
+.navbar-author {color: white;}
+</style>
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(DT)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(plotly)
+library(magick)
+```
+
+
+```{r plotly-utility}
+tick_yr <- list(
+                dtick = 1,
+                ticktext = list("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+                tickvals = list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                tickmode = "array",
+                range = c(0.5,12.5)
+              )
+
+tick_yr_no_title <- list(
+                         title = "",
+                         dtick = 1,
+                         ticktext = list("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+                         tickvals = list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),tickmode = "array",
+                         range = c(0.5,12.5)
+                        )
+
+pick_mth <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+config_bar_remove_buttons <- c(
+                              'sendDataToCloud',
+                              'autoScale2d',
+                              "select2d",
+                              'lasso2d',
+                              'pan2d',
+                              'zoom2d',
+                              'zoomIn2d',
+                              'zoomOut2d',
+                              'zoomInGeo',
+                              'zoomOutGeo',
+                              'hoverClosestCartesian',
+                              'hoverCompareCartesian',
+                              'toggleSpikelines',
+                              'drawrect'
+                              )
+```
+
+# Overview {data-icon="fa-home"}
+
+## Row ----------------------------------------------------------
+### Aerodrome Layout
+
+```{r airport-layout}
+
+if( file.exists(FILE <- paste0("./layouts/",params$icao,".png")) == 'TRUE' )
+  { knitr::include_graphics(paste0("./layouts/", params$icao, ".png")) }
+
+```
+
+### General
+
+```{r apt-id}
+
+ID_TBL    <- tribble(
+                  ~ITEM        , 
+                  ~TEXT1       ,
+                  ~TEXT2
+                  ,"Airport"   , params$name  , ""
+                  ,"ICAO/IATA" , paste0(params$icao, "/", params$iata) , ""
+                  ,"State"     , params$state , ""
+                  ,""          ,""            , ""
+                  )
+
+RWY_CONFIG <- params$config %>%
+              mutate(ITEM = "") %>%
+              select(ITEM, 
+                     TEXT1 = CONFIGURATION, 
+                     TEXT2 = SHARE_PCT ) %>%
+              mutate(TEXT2 = paste0(round( 100 * TEXT2) , "%")) %>% 
+              na.omit()
+
+RWY_CONFIG$ITEM[1] <- "Configurations in 2019"
+
+ID_TBL <- ID_TBL %>% 
+          bind_rows(RWY_CONFIG)
+
+ID_TBL %>%
+ datatable(
+          options = list( 
+                        dom = "t",        
+                        ordering = FALSE,  
+                        autoWidth = TRUE,
+                        columnDefs = list(list(width = '150px', targets = c(0))), 
+                        scrollX = TRUE
+                        ),
+                    colnames  = rep("", ncol(ID_TBL)),
+                    rownames  = FALSE,
+                    selection = 'none',
+                    caption = htmltools::tags$caption(
+                                                      style = 'caption-side: bottom; text-align: right;',
+                                                              'Only configurations with a minimum of 3% share are shown.'
+                                                      )
+         ) %>%
+ formatStyle(names(ID_TBL),lineHeight='70%')
+
+```
+
+## Row ----------------------------------------------------------
+### Summary
+
+```{r front-page-table}
+
+if (params$apdf == 'Y')
+{   
+
+source("./APT_DSHBD_FRONTPAGE.R")
+
+out <- prepare_front_page_DT(params$icao, 
+                             params$tfc, 
+                             params$asma_mm, 
+                             params$txot_mm, 
+                             params$atfm, 
+                             params$ldgsum, 
+                             params$latest)
+
+out %>% 
+  datatable(options   = list(dom            = "t",
+                             pageLength     = nrow(out),
+                             ordering       = FALSE,
+                             columnDefs     = list(list(className = 'dt-center', 
+                                                        targets   = "_all" )),
+                             fnDrawCallback = htmlwidgets::JS('function(){HTMLWidgets.staticRender();}')
+                          ),
+            escape    = FALSE,
+            colnames  = c("Indicator",
+                          "Year 2019",
+                          "Most Recent Month",
+                          "12-month Trend"),
+            rownames  = FALSE, 
+            caption   = htmltools::tags$caption(style = 'caption-side: bottom; text-align: right;',
+                        'Performance measures (other than traffic) are typically reported for the month preceeding the previous month, i.e. July -> May. Data reported under Most Recent Month dating back further point at on-going quality validation or missing reporting.')
+            ) %>% 
+  spk_add_deps() 
+
+} else
+{
+
+source("./APT_DSHBD_FRONTPAGE.R")
+
+out <- prepare_front_page_NON_APDF( params$icao, 
+                                    params$tfc, 
+                                    params$atfm, 
+                                    params$ldgsum, 
+                                    params$latest)
+
+out %>% 
+  datatable(options   = list(dom            = "t",
+                             pageLength     = nrow(out),
+                             ordering       = FALSE,
+                             columnDefs     = list(list(className = 'dt-center', 
+                                                        targets   = "_all" )),
+                             fnDrawCallback = htmlwidgets::JS('function(){HTMLWidgets.staticRender();}')
+                          ),
+            escape    = FALSE,
+            colnames  = c("Indicator",
+                          "Year 2019",
+                          "Most Recent Month",
+                          "12-month Trend"),
+            rownames  = FALSE, 
+            caption   = htmltools::tags$caption(style = 'caption-side: bottom; text-align: right;',
+                        'Performance measures (other than traffic) are typically reported for the month preceeding the previous month, i.e. July -> May. Data reported under Most Recent Month dating back further point at on-going quality validation or missing reporting.')
+            ) %>% 
+  spk_add_deps() 
+  
+}
+  
+```
+
+### Daily Traffic Variation snapshot
+
+```{r tfcvar-snapshot, results='asis'}
+
+if(nrow(params$tfcvar) < 1)
+{ 
+  cat("<p><b>Traffic evolution for this airport under development!</b>")
+}else
+{
+  
+fig1 <- params$tfcvar %>%
+  plot_ly() %>%
+  add_lines(x   = ~DAY, 
+            y   = ~FLTS, 
+            name = "Flights") %>%
+  add_lines(x    = ~DAY, 
+            y    = ~FLTS_2019, 
+            name = "Flights 2019 (Reference)", 
+            line = list(dash = "dot", 
+                        color = "red"))%>%
+  layout(yaxis = list(title = "movements"))
+
+fig2 <- params$tfcvar %>%
+  plot_ly() %>%
+  add_lines(x          = ~DAY, 
+            y          = ~MOV_AVG_WK, 
+            name       = " <br> % vs 2019 <br> (7-day Moving Average)"
+            ) %>%
+  layout( xaxis = list(title      = ""),
+          yaxis = list(title      = "% change from 2019",
+                       titlefont  = list(size = 11),
+                       tickformat = "%"))
+
+fig <- subplot(fig1, 
+               fig2, 
+               nrows=2, 
+               shareX = TRUE) %>%
+  layout( hovermode = "x unified")%>%
+  config( displaylogo           = FALSE,
+          modeBarButtonsToRemove = config_bar_remove_buttons)
+
+fig
+
+}
+
+```
+
+
+# Traffic
+
+## Row -----------------------------------------------------------
+
+### Annual Traffic
+```{r annual traffic}
+
+mvts_pa <- params$tfc %>% 
+            select(YEAR, FLT_TOT) %>%
+            group_by(YEAR) %>%
+            summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE)) %>% 
+            ungroup()
+
+cum_mvts <- params$tfc %>% 
+              select(YEAR, MONTH_NUM, FLT_DATE, FLT_TOT) %>% 
+              mutate(across(c(YEAR,MONTH_NUM), as.numeric)) %>% 
+              filter(YEAR %in% c(max(YEAR), max(YEAR)-1))
+
+this_year_max_month <- cum_mvts %>% 
+                        filter(YEAR == max(YEAR)) %>% 
+                        pull(MONTH_NUM) %>% 
+                        max() %>%
+                        unique()
+
+cum_mvts <- cum_mvts %>% 
+              filter(MONTH_NUM <= this_year_max_month) %>% 
+              group_by(YEAR) %>% 
+              summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE)) %>% 
+              ungroup() %>% 
+              mutate(CHANGE = ( FLT_TOT - lag(FLT_TOT))/lag(FLT_TOT) )
+
+msg     <- paste0( "<b>Change Jan-", 
+                   pick_mth[this_year_max_month],
+                   "<br>", 
+                   cum_mvts$YEAR[2],
+                   " vs ", 
+                   cum_mvts$YEAR[1],
+                   ":<br>", 
+                   round(100* cum_mvts[2,"CHANGE"], 2),"% </b>")
+
+msg_y   <- mvts_pa %>% 
+            filter(YEAR == as.integer(max(YEAR)) - 1) %>% 
+            mutate(FLT_TOT = 0.7 * FLT_TOT) %>% pull(FLT_TOT)
+
+key_msg <- list(x = unique(max(mvts_pa$YEAR)),
+                y = msg_y,
+                text = msg,
+                size = 14,
+                showarrow = FALSE)
+
+xax <- list(title="")
+
+yax <- list(title="Number of Flights", 
+            titlefont = list(size = 11))
+
+mvts_pa <- mvts_pa %>%
+            mutate(YEAR= as.character(YEAR))
+
+mvts_pa %>%
+ plot_ly(x = ~YEAR, 
+         y = ~FLT_TOT) %>%
+ add_trace(type = "bar", 
+           name = "Traffic",
+           hoverinfo = "text",
+           hovertemplate = paste("Year: %{x}","<br>Flights: %{y:.r}")) %>% 
+            layout(xaxis = xax, 
+                   yaxis = yax,
+                   annotations = key_msg) %>%                    
+           config( displaylogo = FALSE,
+                   modeBarButtonsToRemove = config_bar_remove_buttons)
+
+```
+
+### Monthly Traffic
+
+```{r}
+
+mvts_pm <- params$tfc %>% 
+            select(YEAR, MONTH_NUM, FLT_TOT) %>%
+            group_by(YEAR, MONTH_NUM) %>%
+            summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE))%>% 
+            ungroup()
+
+mvts_pm_max <- mvts_pm %>% filter(FLT_TOT == max(FLT_TOT))
+
+msg         <- paste0( "<b>Busiest month <br>(last 5 years): <br>",
+                       mvts_pm_max$MONTH_NUM, "-", 
+                       mvts_pm_max$YEAR,
+                       "<br>", mvts_pm_max$FLT_TOT, "</b>")
+
+xax <- tick_yr_no_title
+
+yax <- list(title="Number of Flights", 
+            rangemode = "tozero",
+            titlefont = list(size = 11))
+
+mvts_pm <- mvts_pm %>%
+            mutate(YEAR= as.character(YEAR))
+
+mvts_pm %>%
+                plot_ly(x     = ~MONTH_NUM, 
+                        y     = ~FLT_TOT, 
+                        group = ~YEAR,
+                        color = ~YEAR
+                        ) %>%
+                add_trace( type = 'scatter', 
+                           mode = 'markers+lines',
+                           hovertemplate = "%{y:.r}") %>%
+                add_annotations( text      = msg, 
+                                 x         = mvts_pm_max$MONTH_NUM, 
+                                 y         = mvts_pm_max$FLT_TOT, 
+                                 showarrow = TRUE, 
+                                 ax        = 50, 
+                                 ay       = 100 ) %>%
+                layout( xaxis     = xax, 
+                        yaxis     = yax,
+                        hovermode = "x unified") %>%       
+                config( displaylogo = FALSE,
+                        modeBarButtonsToRemove = config_bar_remove_buttons )
+
+```
+
+
+## Row -----------------------------------------------------------
+
+### Annual Variation of Daily Movements 
+```{r daily movements}
+
+tmp <- params$tfc %>%
+        select(YEAR, 
+               DATE = FLT_DATE, 
+               FLT_DEP, 
+               FLT_ARR) %>%
+        pivot_longer(cols = starts_with("FLT_"), 
+                     names_to = "PHASE", 
+                     values_to = "MVTS") %>%
+        separate(PHASE, 
+                 into = c(NA, "PHASE", NA),
+                 sep = "_") %>%
+        mutate (PHASE = factor(PHASE,
+                               levels = c("DEP","ARR"),
+                               labels = c("Departures","Arrivals")))
+
+xax <- list(title = "")
+
+yax <- list(title = "Movements per day",titlefont = list(size = 11))
+
+pbox_group <- tmp %>%
+  plot_ly(x     = ~YEAR, 
+          y     = ~MVTS, 
+          color = ~PHASE, 
+          type  = "box") %>%
+  layout(boxmode = "group", 
+         xaxis   = xax, 
+         yaxis   = yax) %>%
+  config( displaylogo = FALSE,
+          modeBarButtonsToRemove = config_bar_remove_buttons)
+
+pbox_group
+
+```
+
+
+### Average Weekday Hourly Throughput
+
+```{r}
+
+thru <- params$thru %>% 
+  filter(TIME >= hm("05:55"),
+         TIME <= hm("23:05"))%>%
+  mutate (PHASE = factor(PHASE,
+                         levels = c("DEP","ARR"),
+                         labels = c("Departures","Arrivals")))
+
+  thru_yr <- unique(thru$YEAR)
+
+thru_mth<- unique(thru$MONTH_NUM)
+ 
+thru_tot <- thru %>% 
+            group_by(TIME) %>% 
+            summarise(ROLLING_HOUR_MVT = sum(ROLLING_HOUR_MVT,na.rm = TRUE)) %>% 
+            mutate(PHASE="Total") %>% 
+            ungroup()
+
+thru <- thru %>% 
+        bind_rows(thru_tot) %>%
+        mutate( TIME = as.character(TIME),TIME = strtrim(TIME, 5))
+
+xax = list( title="", 
+            type = "category",
+            range = c("06:00","23:00"))
+
+yax = list( title= 'Average Throughput [flights/hour]',
+            titlefont = list(size = 11),
+            hoverformat = ".2f")
+
+msg = paste0("<b>Average 15-min rolling hour",
+             "<br>throughput-weekdays month ",
+             pick_mth[thru_mth],
+             thru_yr,
+             "</b>")
+
+if(max(thru$ROLLING_HOUR_MVT) <= 20)
+  { msg_y <- 1.2 * max(thru$ROLLING_HOUR_MVT) } else { msg_y <- 0.1 * max(thru$ROLLING_HOUR_MVT) }
+
+thru %>% 
+  plot_ly(x     = ~TIME, 
+          y     = ~ROLLING_HOUR_MVT, 
+          color = ~PHASE) %>%
+  group_by(PHASE) %>%
+  add_lines(type = 'scatter') %>%    
+  add_annotations(text      = msg, 
+                  x         = 0.5, 
+                  xref      = "paper", 
+                  y         = msg_y, 
+                  showarrow = FALSE, 
+                  ax        = 0, 
+                  ay        = 0, 
+                  align     = "center") %>%
+  layout( xaxis     = xax, 
+          yaxis     = yax,
+          hovermode = "x unified") %>%
+  config( displaylogo = FALSE,
+          modeBarButtonsToRemove = config_bar_remove_buttons)
+
+```
+
+
+# ATFM Delay
+
+## Row -----------------------------------------------------------
+### Annual Arrival ATFM Delay
+
+
+```{r atfm_pa}
+
+if(nrow(params$atfm) > 0) {
+
+atfm_pa <- params$atfm %>% 
+            select(YEAR, FLT_ARR_1, DLY_APT_ARR_1, AD_DISRUPTION, AD_CAPACITY, AD_WEATHER, 
+                   AD_DISRUPTION_ATC, AD_CAPACITY_ATC, AD_STAFFING_ATC, AD_EVENTS) %>%
+            group_by(YEAR) %>%
+            summarise( FLT_ARR_TOT     = sum(FLT_ARR_1,     na.rm = TRUE),
+                       DLY_APT_ARR_TOT = sum(DLY_APT_ARR_1, na.rm = TRUE),
+                       AD_DISRUPTION   = sum(AD_DISRUPTION, na.rm = TRUE),
+                       AD_CAPACITY     = sum(AD_CAPACITY,   na.rm = TRUE),
+                       AD_WEATHER      = sum(AD_WEATHER,    na.rm = TRUE),
+                       AD_DISRUPTION_ATC=sum(AD_DISRUPTION_ATC, na.rm = TRUE),
+                       AD_CAPACITY_ATC = sum(AD_CAPACITY_ATC, na.rm = TRUE),
+                       AD_STAFFING_ATC = sum(AD_STAFFING_ATC, na.rm = TRUE),
+                       AD_EVENTS       = sum(AD_EVENTS,     na.rm = TRUE)
+                     ) %>% 
+            ungroup() %>% 
+            tidyr::pivot_longer(cols = starts_with("AD_"), 
+                                names_to = "REG_REASON", 
+                                values_to = "DLY") %>%
+            mutate(AVG_ARR_ATFM_DLY = DLY_APT_ARR_TOT / FLT_ARR_TOT,
+                   AVG_ARR_ATFM_REG = DLY             / FLT_ARR_TOT)
+
+# ------------------ ATFM Grouping and Colour Definition ------------------
+
+atfm_col <- c(
+              "#595959",    # rgb2hex(89,89,89)    # AD Events
+              "#B9CDE5",    # rgb2hex(185,205,229) # AD Disruption
+              "#E6B9B8",    # rgb2hex(230,185,184) # AD Capacity
+              "#9BBB59",    # rgb2hex(155,187,89)  # AD Weather
+              "#4F81BD",    # rgb2hex(79,129,189)  # AD Disruption ATC
+              "#F79646",    # rgb2hex(247,150,70)  # Staffing ATC
+              "#C0504D"     # rgb2hex(192,80,77)   # AD Capacity ATC
+              )
+
+atfm_grps <- c("AD_EVENTS",
+               "AD_DISRUPTION",
+               "AD_CAPACITY",
+               "AD_WEATHER",
+               "AD_DISRUPTION_ATC",
+               "AD_STAFFING_ATC",
+               "AD_CAPACITY_ATC")
+
+atfm_lbl <- c("Events",
+              "Disruption",
+              "Capacity", 
+              "Weather", 
+              "Disruption (ATC)",
+              "Staffing (ATC)", 
+              "Capacity (ATC)")
+
+# -------------------------------------------------------------------------
+
+atfm_pa <- atfm_pa %>% 
+            mutate(REG_REASON = factor(REG_REASON, 
+                                       levels = atfm_grps, 
+                                       labels = atfm_lbl)
+                   )
+
+atfm_pa %>% plot_ly( x = ~YEAR, 
+                     y = ~AVG_ARR_ATFM_REG,
+                     color = ~REG_REASON, 
+                     colors = atfm_col, 
+                     type = "bar") %>%
+            layout(barmode = "stack", 
+                   hovermode = "x unified",
+                   xaxis = list(title = ""),
+                   yaxis = list(title="Average Arrival ATFM delay [min/arr]",
+                                titlefont = list(size = 11),
+                                hoverformat = ".2f")) %>% 
+            config( displaylogo = FALSE,
+                    modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+
+```
+
+### Monthly Arrival ATFM Delay
+
+```{r}
+
+# monthly trend
+
+if(nrow(params$atfm) > 0) {
+
+atfm_pm <- params$atfm %>% 
+            select(YEAR, MONTH_NUM, FLT_ARR_1, DLY_APT_ARR_1, AD_DISRUPTION, AD_CAPACITY, AD_WEATHER, 
+                   AD_DISRUPTION_ATC, AD_CAPACITY_ATC, AD_STAFFING_ATC, AD_EVENTS) %>%
+            group_by(YEAR, MONTH_NUM) %>%
+            summarise( FLT_ARR_TOT     = sum(FLT_ARR_1,     na.rm = TRUE),
+                       DLY_APT_ARR_TOT = sum(DLY_APT_ARR_1, na.rm = TRUE),
+                       AD_DISRUPTION   = sum(AD_DISRUPTION, na.rm = TRUE),
+                       AD_CAPACITY     = sum(AD_CAPACITY,   na.rm = TRUE),
+                       AD_WEATHER      = sum(AD_WEATHER,    na.rm = TRUE),
+                       AD_DISRUPTION_ATC=sum(AD_DISRUPTION_ATC, na.rm = TRUE),
+                       AD_CAPACITY_ATC = sum(AD_CAPACITY_ATC, na.rm = TRUE),
+                       AD_STAFFING_ATC = sum(AD_STAFFING_ATC, na.rm = TRUE),
+                       AD_EVENTS       = sum(AD_EVENTS,     na.rm = TRUE)
+                      ) %>% 
+            ungroup() %>%
+            tidyr::pivot_longer(cols = starts_with("AD_"), 
+                                names_to = "REG_REASON", 
+                                values_to = "DLY") %>%
+            mutate(AVG_ARR_ATFM_DLY = DLY_APT_ARR_TOT / FLT_ARR_TOT,
+                   AVG_ARR_ATFM_REG = DLY /             FLT_ARR_TOT)
+
+#############
+
+filter_years <- atfm_pm %>% 
+                  pull(YEAR) %>% 
+                  unique()
+
+button_list  <- lapply(1:length(filter_years),function(x){
+                                                          list(method = "restyle",
+                                                               args = list("transforms[0].value", 
+                                                                           filter_years[x]),
+                                                               label = filter_years[x])
+                                                          }  )
+
+button_type_list <-  list(  type = 'buttons',
+                            bgcolor = '#c3c1e8',
+                            active = length(filter_years)-1,
+                            direction = 'right', 
+                            xref = "paper",
+                            x = 0.3,
+                            xanchor = 'left', 
+                            yref = "paper", 
+                            y = 1.2, 
+                            yanchor = "bottom",
+                            buttons = button_list)
+
+##########################
+
+# set REG_REASON grouping and colors 
+
+atfm_pm <- atfm_pm %>%
+            mutate(REG_REASON = factor(REG_REASON, 
+                                       levels = atfm_grps, 
+                                       labels = atfm_lbl)
+                   )
+
+atfm_pm %>% plot_ly(x          = ~MONTH_NUM, 
+                    y          = ~AVG_ARR_ATFM_REG,
+                    customdata = ~YEAR, 
+                    color      = ~REG_REASON, 
+                    colors     = atfm_col, 
+                    type       = "bar", 
+                    transforms = list(list(type = 'filter',
+                                           target = "customdata",
+                                           operation = '=',
+                                           value = "2020"))) %>%
+            layout( barmode     = "stack",
+                    hovermode   = "x unified",
+                    xaxis       = tick_yr_no_title,
+                    yaxis       = list(title     ="Average Arrival ATFM delay [min/arr]",
+                                       titlefont = list(size = 11),
+                                       hoverformat = ".2f",
+                                       rangemode = 'tozero'),
+                    showlegend  = TRUE,
+                    updatemenus = list( button_type_list )) %>% 
+            config( displaylogo           = FALSE,
+                    modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+
+```
+
+
+## Row -----------------------------------------------------------
+### Daily Arrival ATFM Delay
+
+```{r}
+
+if(nrow(params$atfm) > 0) {
+
+tmp <- params$atfm %>% 
+        group_by(FLT_DATE) %>%
+        summarise(ARRS         = sum(FLT_ARR_1, na.rm = TRUE),
+                  TOT_ARR_ATFM = sum(DLY_APT_ARR_1, na.rm = TRUE),
+                  DLYD_ARRS    = sum(FLT_ARR_1_DLY, na.rm = TRUE),
+                  DLYS_ARRS_15 = sum(FLT_ARR_1_DLY_15, na.rm = TRUE))
+
+worst_day_last_year   <- tmp %>%
+                        top_n(365, FLT_DATE) %>%
+                        filter(TOT_ARR_ATFM == max(TOT_ARR_ATFM, na.rm = TRUE))
+
+worst_day_date        <- worst_day_last_year$FLT_DATE
+
+worst_day_dly         <- worst_day_last_year$TOT_ARR_ATFM
+
+worst_day_avgATFMdly  <- worst_day_last_year$TOT_ARR_ATFM / worst_day_last_year$ARRS
+
+
+if(nrow(worst_day_last_year) >= 5)
+    {
+     key_msg        <- paste0("<b>Many days with identical <br>share of Arrival ATFM Delay!<b>")
+     worst_day_date <- floor_date(mean(worst_day_last_year$FLT_DATE))
+     worst_day_dly  <- unique(worst_day_last_year$TOT_ARR_ATFM)
+    }else
+    {
+     key_msg <- paste0("<b>Worst day in last 12 months: "   , worst_day_date,
+                       "<br>with total Arrival ATFM Delay: ", worst_day_dly, "min",
+                       "<br>(avg. Arrival ATFM Delay: "     , round(worst_day_avgATFMdly,2), "min)</b>")
+    }
+
+p <- tmp %>%
+      plot_ly(x    = ~FLT_DATE,
+              y    = ~TOT_ARR_ATFM,
+              type = 'scatter', 
+              mode = 'lines', 
+              line = list(shape = "hvh",
+                          width = 1)) %>%
+      add_annotations(text      = key_msg, 
+                      x         = worst_day_date, 
+                      y         = worst_day_dly, 
+                      showarrow = TRUE, 
+                      ax        = -50, 
+                      ay        = -50, 
+                      align     = "right") %>%
+      layout( xaxis = list( title       = "",
+                          rangeslider = list(type = "date")),
+            yaxis = list(title     = "Arrival ATFM delay [min]",
+                         titlefont = list(size = 11))) %>% 
+      config( displaylogo            = FALSE,
+              modeBarButtonsToRemove = config_bar_remove_buttons)
+
+p
+
+}
+  
+```
+
+### Share of ATFM Delay Current Year
+
+```{r atfm-ytd}
+
+if(nrow(params$atfm) > 0) {
+
+atfm_max_year <- atfm_pm %>%
+                  pull(YEAR) %>% 
+                  max() %>%
+                  unique()
+
+share_atfm <- atfm_pm %>% 
+                filter(YEAR == atfm_max_year) %>% 
+                group_by(REG_REASON) %>%
+                summarise( FLT_ARR_TOT = sum(FLT_ARR_TOT, na.rm = TRUE),
+                           DLY         = sum(DLY,         na.rm = TRUE)) %>%
+                ungroup() %>%
+                mutate(DLY_TOT   = sum(DLY, na.rm = TRUE),
+                       DLY_SHARE = round(DLY / DLY_TOT,2),
+                       LABELS    = paste0(REG_REASON,"<br>", DLY_SHARE,"%")) %>%
+                filter(DLY_SHARE > 0)
+
+center_text <- paste0("<b>", atfm_max_year,"</b>")
+
+share_atfm %>% plot_ly(labels = ~REG_REASON,
+                       values = ~DLY_SHARE) %>%
+               add_pie(hole         = 0.4,
+                       textposition = "outside") %>%
+               add_annotations( text      = center_text, 
+                                font      = list(size = 18),
+                                x         = 0.5, 
+                                y         = 0.5, 
+                                showarrow = FALSE) %>%
+               config( displaylogo    = FALSE,
+               modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+
+```
+
+
+# ATFM Slot
+
+## Row -----------------------------------------------------------
+### Annual ATFM Slot Adherence
+```{r ATFM SLOT YEARLY LAYOUT}
+
+ 
+```
+
+### Monthly ATFM Slot Adherence
+```{r ATFM SLOT MONHTLY LAYOUT}
+
+ 
+```
+
+
+
+# ASMA Time
+
+## Row -----------------------------------------------------------
+### Annual ASMA
+
+```{r ASMA YEARLY LAYOUT}
+if (params$apdf == 'Y')
+{ 
+
+ASMA_YY <- params$asma_yy %>% 
+            tidyr::pivot_longer(cols = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                names_to = "TYPE", 
+                                values_to = "TIME" ) 
+
+ASMA_YY <- ASMA_YY %>%
+            mutate(TYPE = factor(TYPE,
+                                 levels = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                 labels = c("Avg. Reference time","Avg. Additional time")))
+ASMA_YY <- ASMA_YY %>%
+            mutate(YEAR= as.character(YEAR))
+
+ASMA_YY %>%
+  plotly::plot_ly(x          = ~YEAR, 
+                  y          = ~TIME, 
+                  type       = "bar", 
+                  showlegend = TRUE, 
+                  color      = ~TYPE) %>%
+  layout(barmode   = "stack", 
+         hovermode = "x unified", 
+         xaxis     = list(title=""), 
+         yaxis     = list(title = "Average ASMA time [min/arr]",
+                          titlefont   = list(size = 11),
+                          hoverformat = ".2f")
+        ) %>% 
+  config( displaylogo = FALSE,
+          modeBarButtonsToRemove = config_bar_remove_buttons)
+} 
+```
+
+### Monthly ASMA
+
+```{r ASMA MONTHLY LAYOUT}
+if (params$apdf == 'Y')
+{ 
+ASMA_MM <- params$asma_mm %>% 
+            tidyr::pivot_longer(cols = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                names_to = "TYPE", 
+                                values_to = "TIME" ) 
+
+ASMA_MM <- ASMA_MM %>%
+            mutate(TYPE = factor(TYPE,
+                                 levels = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                 labels = c("Avg. Reference time","Avg. Additional time")))
+
+filter_years <- ASMA_MM %>% 
+                  pull(YEAR) %>% unique()
+
+button_list  <- lapply(1:length(filter_years),
+                       function(x){
+                                  list(method = "restyle",
+                                       args = list("transforms[0].value", filter_years[x]),
+                                       label = filter_years[x])
+                                  }
+                      )
+
+button_type_list <-  list(type      = 'buttons',
+                          bgcolor   = '#c3c1e8',
+                          active    = length(filter_years)-1,
+                          direction = 'right', 
+                          xref      = "paper", 
+                          x         = 0.3, 
+                          xanchor   = 'left', 
+                          yref      = "paper", 
+                          y         = 1.2, 
+                          yanchor = "bottom",
+                          buttons = button_list)
+
+ASMA_MM %>%
+  plot_ly(x          = ~MONTH_NUM,
+          y          = ~TIME, 
+          customdata = ~YEAR, 
+          color      = ~TYPE, 
+          type       = "bar", 
+          transforms = list(list(type      = 'filter',
+                                 target    = "customdata",
+                                 operation = '=',
+                                 value     = "2020")
+                            ) 
+         ) %>%
+        layout( barmode     = "stack", 
+                hovermode   = "x unified",
+                xaxis       = tick_yr_no_title,
+                yaxis       = list( title="Average ASMA Time [min/arr]",
+                                    titlefont = list(size = 11),
+                                    hoverformat = ".2f"),
+                showlegend  = TRUE,
+                updatemenus = list( button_type_list )) %>% 
+        config( displaylogo = FALSE,
+                modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+## Row -----------------------------------------------------------
+### Monthly ASMA Trend (current Year)
+
+```{r ASMA TREND LAYOUT}
+if (params$apdf == 'Y')
+{ 
+TMP <- params$asma_mm %>% 
+        mutate( DATE_YM = paste0(YEAR,"-",MONTH_NUM),
+                DATE_YM = lubridate::parse_date_time(DATE_YM, "ym"))
+
+TMP %>% 
+    plot_ly(x    = ~DATE_YM, 
+            y    = ~AVG_ADD_TIME, 
+            type = 'scatter',
+            mode = 'lines', 
+            line = list(shape = "hvh", 
+                        width = 1)) %>%
+    layout( hoverformat = ".2f",
+            xaxis = list(title = "", 
+                         rangeselector = list(buttons = list(list(count = 3,
+                                                                  label = "3 mo",
+                                                                  step = "month",
+                                                                  stepmode = "backward"),
+                                                             list(count = 6,
+                                                                  label = "6 mo",
+                                                                  step = "month",
+                                                                  stepmode = "backward"),
+                                                             list(count = 1,
+                                                                  label = "1 yr",
+                                                                  step = "year",
+                                                                  stepmode = "backward"),
+                                                             list(count = 1,
+                                                                  label = "YTD",
+                                                                  step = "year",
+                                                                  stepmode = "todate"),
+                                                             list(step = "all"))),
+                         rangeslider = list(type = "date")), 
+            yaxis = list(title = "Additional Average ASMA time [min/arr]",
+                         titlefont = list(size = 11))) %>% 
+            config( displaylogo = FALSE,
+                    modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+# Taxi Times
+
+## Row -----------------------------------------------------------
+### Annual Taxi-Out Time
+
+```{r TXOT YEARLY LAYOUT}
+if (params$apdf == 'Y')
+{ 
+TXOT_YY <- params$txot_yy %>% 
+            tidyr::pivot_longer(cols = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                names_to = "TYPE", 
+                                values_to = "TIME" ) 
+
+TXOT_YY <- TXOT_YY %>%
+            mutate(TYPE = factor(TYPE,
+                                 levels = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                 labels = c("Avg. Reference time","Avg. Additional time")))
+
+TXOT_YY <- TXOT_YY %>%
+            mutate(YEAR= as.character(YEAR))
+
+TXOT_YY %>%
+  plotly::plot_ly(x          = ~YEAR, 
+                  y          = ~TIME, 
+                  type       = "bar", 
+                  showlegend = TRUE, 
+                  color      = ~TYPE) %>%
+  layout(barmode   = "stack", 
+         hovermode = "x unified", 
+         xaxis     = list(title=""), 
+         yaxis     = list(title = "Average Taxi-out time [min/dep]",
+                          titlefont   = list(size = 11),
+                          hoverformat = ".2f")
+        ) %>% 
+  config( displaylogo = FALSE,
+          modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+
+### Monthly Taxi-Out Time
+
+```{r TAXI-OUT MONTHLY LAYOUT}
+if (params$apdf == 'Y')
+{ 
+TXOT_MM <- params$txot_mm %>% 
+            tidyr::pivot_longer(cols = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                names_to = "TYPE", 
+                                values_to = "TIME" ) 
+
+TXOT_MM <- TXOT_MM %>%
+            mutate(TYPE = factor(TYPE,
+                                 levels = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                 labels = c("Avg. Reference time","Avg. Additional time")))
+
+filter_years <- TXOT_MM %>% 
+                  pull(YEAR) %>% unique()
+
+button_list  <- lapply(1:length(filter_years),
+                       function(x){
+                                  list(method = "restyle",
+                                       args = list("transforms[0].value", filter_years[x]),
+                                       label = filter_years[x])
+                                  }
+                      )
+
+button_type_list <-  list(type      = 'buttons',
+                          bgcolor   = '#c3c1e8',
+                          active    = length(filter_years)-1,
+                          direction = 'right', 
+                          xref      = "paper", 
+                          x         = 0.3, 
+                          xanchor   = 'left', 
+                          yref      = "paper", 
+                          y         = 1.2, 
+                          yanchor = "bottom",
+                          buttons = button_list)
+
+TXOT_MM %>%
+  plot_ly(x          = ~MONTH_NUM,
+          y          = ~TIME, 
+          customdata = ~YEAR, 
+          color      = ~TYPE, 
+          type       = "bar", 
+          transforms = list(list(type      = 'filter',
+                                 target    = "customdata",
+                                 operation = '=',
+                                 value     = "2020")
+                            ) 
+         ) %>%
+        layout( barmode     = "stack", 
+                hovermode   = "x unified",
+                xaxis       = tick_yr_no_title,
+                yaxis       = list( title="Average Taxi-out time [min/dep]",
+                                    titlefont = list(size = 11),
+                                    hoverformat = ".2f"),
+                showlegend  = TRUE,
+                updatemenus = list( button_type_list )) %>% 
+        config( displaylogo = FALSE,
+                modeBarButtonsToRemove = config_bar_remove_buttons)
+
+}
+```
+
+## Row -----------------------------------------------------------
+
+### Annual Taxi-In Time
+
+```{r TXIN YEARLY LAYOUT}
+if (params$apdf == 'Y')
+{ 
+TXIN_YY <- params$txin_yy %>% 
+            tidyr::pivot_longer(cols = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                names_to = "TYPE", 
+                                values_to = "TIME" )
+
+TXIN_YY <- TXIN_YY %>%
+            mutate(TYPE = factor(TYPE,
+                                 levels = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                 labels = c("Avg. Reference time","Avg. Additional time")))
+
+TXIN_YY <- TXIN_YY %>%
+            mutate(YEAR= as.character(YEAR))
+
+TXIN_YY %>%
+  plotly::plot_ly(x          = ~YEAR, 
+                  y          = ~TIME, 
+                  type       = "bar", 
+                  showlegend = TRUE, 
+                  color=~TYPE) %>%
+          layout(barmode   = "stack", 
+                 hovermode = "x unified", 
+                 xaxis     = list(title=""), 
+                 yaxis     = list(title="Average Taxi-in time [min/arr]",
+                                  titlefont = list(size=11),
+                                  hoverformat = ".2f"))%>% 
+          config( displaylogo = FALSE,
+                  modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+
+### Monthly Taxi-In Time
+
+```{r TAXI-IN MONTHLY LAYOUT}
+if (params$apdf == 'Y')
+{ 
+TXIN_MM <- params$txin_mm %>% 
+            tidyr::pivot_longer(cols = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                names_to = "TYPE", 
+                                values_to = "TIME" ) 
+
+TXIN_MM <- TXIN_MM %>%
+            mutate(TYPE = factor(TYPE,
+                                 levels = c("AVG_UNIMP_TIME","AVG_ADD_TIME"),
+                                 labels = c("Avg. Reference time","Avg. Additional time")))
+
+filter_years <- TXIN_MM %>% 
+                  pull(YEAR) %>% unique()
+
+button_list  <- lapply(1:length(filter_years),
+                       function(x){
+                                  list(method = "restyle",
+                                       args = list("transforms[0].value", filter_years[x]),
+                                       label = filter_years[x])
+                                  }
+                      )
+
+button_type_list <-  list(type      = 'buttons',
+                          bgcolor   = '#c3c1e8',
+                          active    = length(filter_years)-1,
+                          direction = 'right', 
+                          xref      = "paper", 
+                          x         = 0.3, 
+                          xanchor   = 'left', 
+                          yref      = "paper", 
+                          y         = 1.2, 
+                          yanchor = "bottom",
+                          buttons = button_list)
+
+TXIN_MM %>%
+  plot_ly(x          = ~MONTH_NUM,
+          y          = ~TIME, 
+          customdata = ~YEAR, 
+          color      = ~TYPE, 
+          type       = "bar", 
+          transforms = list(list(type      = 'filter',
+                                 target    = "customdata",
+                                 operation = '=',
+                                 value     = "2020")
+                            ) 
+         ) %>%
+        layout( barmode     = "stack", 
+                hovermode   = "x unified",
+                xaxis       = tick_yr_no_title,
+                yaxis       = list( title="Average Taxi-in time [min/arr]",
+                                    titlefont = list(size = 11),
+                                    hoverformat = ".2f"),
+                showlegend  = TRUE,
+                updatemenus = list( button_type_list )) %>% 
+        config( displaylogo = FALSE,
+                modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+# Pre-Dep Delay
+
+## Row -----------------------------------------------------------
+### Annual Pre-Departure Delay (as reported by airports)
+
+```{r pre-dep-dly-pa}
+if (params$apdf == 'Y')
+{ 
+PDDLY_YY <- params$pddly_yy %>% 
+              select(YEAR, TOT_DLY_89, TOT_DLY_OTHER, TOT_DLY_UNID)  %>%
+              tidyr::pivot_longer(cols      = starts_with("TOT_DLY_"),
+                                  names_to  = "DLY_CAT",
+                                  values_to = "DLY_DUR")
+
+PDDLY_YY$DLY_CAT <- factor(PDDLY_YY$DLY_CAT,
+                           levels=c("TOT_DLY_UNID", "TOT_DLY_OTHER", "TOT_DLY_89"),
+                           labels=c("unidentified", "other reasons", "ATC pre-departure <br>delay (code 89)"))
+
+
+PDDLY_YY <- PDDLY_YY %>%
+            mutate(YEAR= as.character(YEAR))
+
+PDDLY_YY %>%
+      plot_ly(x           = ~YEAR,
+              y           = ~DLY_DUR, 
+              type        = "bar", 
+              color       = ~DLY_CAT, 
+              legendgroup = ~DLY_CAT,
+              hovertemplate = "%{y:.r}") %>%
+      layout( barmode   = "stack",
+              hovermode = "x unified",
+              xaxis     = list(title = ""),
+              yaxis     = list( title = "Pre-departure delay [min]",
+                                titlefont = list(size = 11))) %>% 
+      config( displaylogo = FALSE,
+              modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+### Monthly Pre-departure Delay (as reported by airports)
+
+```{r}
+if (params$apdf == 'Y')
+{ 
+PDDLY_MM <- params$pddly_mm %>%
+              select(YEAR, MONTH_NUM, TOT_DLY_89, TOT_DLY_OTHER, TOT_DLY_UNID) %>%
+              tidyr::pivot_longer(cols      = starts_with("TOT_DLY_") , 
+                                  names_to  = "DLY_CAT", 
+                                  values_to = "DLY_DUR")
+
+PDDLY_MM$DLY_CAT <- factor(PDDLY_MM$DLY_CAT,
+                           levels = c("TOT_DLY_UNID", "TOT_DLY_OTHER", "TOT_DLY_89"),
+                           labels = c("unidentified", "other reasons", "ATC pre-departure <br> delay (code 89)"))
+
+button_type_list <-  list( buttons   = button_list, 
+                           type      = 'buttons', 
+                           bgcolor   = '#c3c1e8', 
+                           active    = length(filter_years)-1,
+                           direction = 'right', 
+                           xref      = "paper",
+                           x         = 0.3,
+                           xanchor   = 'left', 
+                           yref      = "paper",
+                           y         = 1.2, 
+                           yanchor   = "bottom")
+
+PDDLY_MM %>%
+  plot_ly(x          = ~MONTH_NUM, 
+          y          = ~DLY_DUR,
+          hovertemplate = "%{y:.r}",
+          customdata = ~YEAR, 
+          color      = ~DLY_CAT, 
+          type       = "bar", 
+          transforms = list(list(type      = 'filter',
+                                 target    = "customdata",
+                                 operation = '=',
+                                 value     = "2020")
+                           )
+         ) %>%
+  layout( barmode     = "stack",
+          xaxis       = tick_yr_no_title,
+          yaxis       = list( title="Pre-departure delay [min]",
+                              titlefont = list(size = 11)),
+          showlegend  = TRUE,
+          updatemenus = list( button_type_list )
+         ) %>% 
+  config( displaylogo = FALSE,
+          modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+## Row -----------------------------------------------------------
+### Monthly Pre-Departure Delay Trend
+
+```{r}
+if (params$apdf == 'Y')
+{ 
+TMP <- PDDLY_MM %>%
+        mutate( DATE_YM = paste0(YEAR,"-",MONTH_NUM),
+                DATE_YM = lubridate::parse_date_time(DATE_YM, "ym") )
+
+TMP %>%
+        plot_ly() %>%
+        add_bars(x     = ~DATE_YM, 
+                 y     = ~DLY_DUR, 
+                 color = ~DLY_CAT,
+                 hovertemplate = "%{y:.r}") %>%
+        layout(barmode = "stack",
+               xaxis = list(title = "",
+                            rangeselector = list(buttons = list(list(count    = 3,
+                                                                     label    = "3 mo",
+                                                                     step     = "month",
+                                                                     stepmode = "backward"),
+                                                                list(count    = 6,
+                                                                     label    = "6 mo",
+                                                                     step     = "month",
+                                                                     stepmode = "backward"),
+                                                                list(count    = 1,
+                                                                     label    = "1 yr",
+                                                                     step     = "year",
+                                                                     stepmode = "backward"),
+                                                                list(count    = 1,
+                                                                     label    = "YTD",
+                                                                     step     = "year",
+                                                                     stepmode = "todate"),
+                                                                list(step     = "all"))),
+                            rangeslider = list(type = "date")
+                            ), 
+               yaxis = list( title = "Pre-departure delay [min]",
+                             titlefont = list(size = 11))) %>% 
+        config( displaylogo = FALSE,
+                modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+### Average ATC Pre-Departure Delay
+
+```{r pre-dep-indicator}
+if (params$apdf == 'Y')
+{ 
+predepdly_pm <- params$pddly_avg %>%
+                  select(YEAR, MONTH_NUM, AVG_PREDEP_DLY) 
+
+button_type_list <-  list(buttons = button_list, 
+                          type = 'buttons', 
+                          bgcolor = '#c3c1e8', 
+                          active = length(filter_years)-1, 
+                          direction = 'right', 
+                          xref = "paper", 
+                          x = 0.3, 
+                          xanchor = 'left', 
+                          yref = "paper",
+                          y = 1.2,
+                          yanchor = "bottom")
+
+predepdly_pm %>%
+  plot_ly(x = ~MONTH_NUM, 
+          y = ~AVG_PREDEP_DLY, 
+          customdata=~YEAR, 
+          type = "bar", 
+          transforms = list(list(type = 'filter',
+                                 target = "customdata",
+                                 operation = '=',
+                                 value = "2020")
+                           )
+         ) %>%
+  layout( barmode = "stack",
+          xaxis = tick_yr_no_title,
+          yaxis=list( title="Avg. ATC Pre-departure delay [min/dep]",
+                      titlefont = list(size = 11),
+                      hoverformat = ".2f"),
+          showlegend = FALSE,
+          updatemenus = list( button_type_list )
+         ) %>%
+  config( displaylogo = FALSE,
+          modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+
+
+# Turnaround Times
+
+## Row ----------------------------------------------------------
+### Annual Actual Turnaround Time
+
+```{r annual_turn_time}
+if (params$apdf == 'Y')
+{ 
+TURN_YY <- params$turn_yy %>%  
+            select(YEAR, AC_CLASS, AVG_ACTT) %>%
+            pivot_wider(names_from = "AC_CLASS", values_from = AVG_ACTT)
+
+nice_names <- tribble(~CLASS, ~NAME
+                       ,"H"  , "Heavy"
+                       ,"MJ" , "Medium Jet"
+                       ,"MT" , "Medium Turboprop")
+
+col_names <- colnames(TURN_YY)[-1]
+
+g1 <- TURN_YY %>% 
+        plot_ly(x = ~YEAR)
+
+for(my_class in col_names){
+                            g1 <- g1 %>% 
+                                  add_bars( y    = as.formula(paste0("~`", my_class, "`")),
+                                            name = nice_names$NAME[nice_names$CLASS == my_class])
+                          }
+
+g1 <- g1 %>%
+        layout( xaxis = list(title = "", 
+                             type  = "category"),
+                yaxis = list(title     = "Average Actual Turnaround time [min]",
+                             titlefont = list(size = 11),
+                             hoverformat = ".2f")
+              ) %>%
+        config( displaylogo = FALSE,
+                modeBarButtonsToRemove = config_bar_remove_buttons)
+
+g1
+}
+```
+
+### Monthly Turnaround Times
+
+```{r monthly_turn_time}
+if (params$apdf == 'Y')
+{ 
+TURN_MM <- params$turn_mm %>% 
+            select(YEAR, MONTH_NUM, AC_CLASS, AVG_ACTT, AVG_SDTT) %>% 
+            mutate( LBL_ACTUAL = paste0("actual turnaround ", AC_CLASS),
+                    LBL_SCHED  = paste0("scheduled turnaround ",AC_CLASS))
+
+button_type_list <-  list( buttons   = button_list, 
+                           type      = 'buttons', 
+                           bgcolor   = '#c3c1e8', 
+                           active    = length(filter_years)-1, 
+                           direction = 'right', 
+                           xref      = "paper", 
+                           x         = 0.3, 
+                           xanchor   = 'left', 
+                           yref      = "paper", 
+                           y         = 1.2, 
+                           yanchor   = "bottom"
+                         )
+
+
+TURN_MM %>%  plot_ly() %>% 
+              add_lines( x             = ~MONTH_NUM,
+                         y             = ~AVG_ACTT,
+                         color         = ~AC_CLASS, 
+                         name          = ~LBL_ACTUAL,
+                         customdata    = ~YEAR, 
+                         transforms    = list(list(type      = 'filter',
+                                                   target    = "customdata",
+                                                   operation = '=',
+                                                   value     = "2020")),
+                         text          = ~AC_CLASS, 
+                         hovertemplate = paste0( "Class: %{text}",
+                                                 "<br>Month: %{x}",
+                                                 "<br>Avg. Turn: %{y:.2f}min"),
+                         legendgroup   = ~AC_CLASS,
+                         showlegend    = TRUE ) %>%
+              add_lines( x             = ~MONTH_NUM, 
+                         y             = ~AVG_SDTT, 
+                         color         = ~AC_CLASS, 
+                         name          = ~LBL_SCHED, 
+                         line          = list(dash = 'dash'),
+                         customdata    = ~YEAR, 
+                         transforms    = list(list(type      = 'filter',
+                                                   target    = "customdata",
+                                                   operation = '=',
+                                                   value     = "2020")),
+                         text          = ~AC_CLASS, 
+                         hovertemplate = paste0( "Class: %{text}",
+                                                 "<br>Month: %{x}",
+                                                 "<br>Avg. Turn: %{y:.2f}min"),
+                         legendgroup   = ~AC_CLASS,
+                         showlegend    = TRUE) %>%
+              layout( updatemenus = list( button_type_list ),
+                      hovermode   = "x unified",
+                      xaxis       = tick_yr_no_title,
+                      yaxis       = list(title = "Average monthly turn times [min]",
+                                         titlefont = list(size = 11))) %>%
+              config( displaylogo = FALSE,
+                      modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+## Row ---------------------------------------------------------------
+### Variation of Annual Actual Turnaround Times
+
+```{r}
+if (params$apdf == 'Y')
+{ 
+
+TURN_MM <- TURN_MM %>%
+            mutate (AC_CLASS = factor(AC_CLASS,
+                                      levels = c("H","MJ","MT"),
+                                      labels = c("Heavy","Medium Jet","Medium Turboprop")))
+
+TURN_MM %>%
+  plot_ly(x     = ~YEAR, 
+          y     = ~AVG_ACTT, 
+          color = ~AC_CLASS, 
+          type  = "box") %>%
+  layout( boxmode = "group",
+          xaxis   = list(title = ""),
+          yaxis   = list( title       = "Average Actual Turnaround time [min]",
+                          titlefont   = list(size = 11),
+                          hoverformat = ".2f") ) %>%
+  config( displaylogo = FALSE,
+          modeBarButtonsToRemove = config_bar_remove_buttons)
+}
+```
+
+# About
+
+## Row ------------------------------------------------------------------
+
+### Powered by
+
+```{r, out.width="40%", fig.pos="float"}
+
+#knitr::include_graphics("../images/euctrl-logo-noname_48x48.png")
+
+```
+
+
+### About this Dashboard
+
+This data is published by the EUROCONTROL Performance Review Unit (PRU) in the interest of the exchange of information. 
+It may be copied in whole or in part providing that this copyright notice © and disclaimer are included. 
+The information may not be modified without prior written permission from the EUROCONTROL Performance Review Unit.
+The information does not necessarily reflect the official views or policy of EUROCONTROL, which makes no warranty, either implied or expressed, for the information contained in this document, including its accuracy, completeness or usefulness.
+Every effort has been made to ensure that the information and analysis contained on this website are as accurate and complete as possible. Despite these precautions, should you find any errors or inconsistencies or if you have any questions then please contact us at: Performance Review Unit (PRU-Support@eurocontrol.int).
+
+### About Performance Review Unit
+
+The PRU is responsible for monitoring and reviewing the performance of the Pan-European ANS system across a number of key performance areas.
+As part of the EUROCONTROL Agency, the PRU supports the independent Performance Review Commission (PRC) in running the EUROCONTROL Performance Review System and executing the associated PRC work programme with the appropriate level of independence.
+The PRU also provides support to the European Commission (EC) on the SES Performance and Charging Schemes.
+In performing its tasks, the PRU maintains transparent working arrangements with service providers, airspace user organisations and the industry.
+Although the PRU is independent, it is administratively reporting to the Directorate European Civil-Military Aviation (DECMA).
+For feedback or questions please contact us at: Performance Review Unit (PRU-Support@eurocontrol.int).
+
+## Row ------------------------------------------------------------------
+
+### Data and Methodolgy
+
+**Data and Methodology**   
+
+IFR traffic data and ATFM delay related data is extracted from the Network Manager.    
+All other airport related data is collected through the Airport Operator Data Flow (APDF). Under the APDF airports are required to report flight-by-flight data on a monthly basis. The data is reported during the month following the month of operations. Thus, typically, APDF data becomes available the 2nd month following the month of operation.  
+
+**Data and metrics are shown based on availability at the moment of publication**    
+
+*	traffic data comprises all IFR flight plans for the airport
+*	ATFM delay data captures the arrival ATFM delay triggered by constraints at the airport.
+*	ATFM delays are grouped according to the regulation reason as described in https://ansperformance.eu/definition/atfm-delay-codes/
+*	additional ASMA time measures the difference between an observed travel time elapsing from entering the 40NM radius around the airport to landing. This time is compared against a reference time to the respective entry sector, aircraft type, and landing runway.
+*	in analogy, additional taxi-times are measured for the taxi-out and taxi-in phase. The observed taxi times are compared with a respective reference time. The referncereference time considers the parking position and runway used by the departure/arrival.
+*	pre-dearturedeparture delay provides for the airspace user reported delay reasoning in case of departures blocking off late. Delay codes have to be provided for delays >= 4 minutes. Most Aairports per se do not validate these delay codes, however, effort is underway to ensure appropriateness of the reported delay codes.
+*	turnaround shows the time elapsing between an aircraft blocking in and blocking off for the next flight.
