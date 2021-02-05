@@ -2,8 +2,8 @@
 # --- SET UP ----
 # ---
 
-cat("\014")        # Clear Environment           ----
-rm(list = ls())    # Clear Console               ----
+cat("\014")        # Clear Console               ----
+rm(list = ls())    # Clear Environment           ----
 
 library(dplyr)     # Loading library [dplyr]     ----
 library(lubridate) # Loading library [lubridate] ----
