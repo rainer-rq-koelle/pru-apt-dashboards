@@ -105,7 +105,7 @@ download.file(FILE_IN, FILE_OUT, mode = "wb")
 #***********************************************************************
 # ---- APT RWY CONFIG (2019)  ----
 #***********************************************************************
-EXPORT_STAT_APDF_RWY_CONFIGURATION <- function() {
+EXPORT_STAT_APDF_RWY_CONFIGURATION_DATA <- function() {
   QUERY <- "SELECT * FROM PRU_AIRPORT.STAT_AIRPORT_CONFIGURATION"
   EXPORT_QUERY("PRU_AIRPORT", QUERY)
 }
@@ -126,12 +126,13 @@ EXPORT_STAT_APDF_TURNAROUND_DATA <- function() {
   EXPORT_QUERY("PRU_AIRPORT", QUERY)
 }
 
+
 # .----
 #***********************************************************************
 # > WRITING CSV FILES IN DATA FOLDER ----
 #***********************************************************************
-EXPORT_STAT_APDF_RWY_CONFIGURATION() %>%
-  readr::write_csv2(here::here("data", "APDF_RWY_CONFIGURATION.csv"))
+EXPORT_STAT_APDF_RWY_CONFIGURATION_DATA() %>%
+  readr::write_csv2(here::here("data", "APDF_RWY_CONFIGURATION_DATA.csv"))
 
 EXPORT_STAT_APDF_MONTLHY_DATA() %>%
   readr::write_csv2(here::here("data", "APDF_MONTHLY_DATA.csv"))
