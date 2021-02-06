@@ -5,6 +5,7 @@ library(dplyr)
 library(lubridate)
 library(readxl)
 library(stringr)
+library(here)
 # .----
 
 APT <- readr::read_csv2(here("data", "PRU_AIRPORT_INFO.csv"))
@@ -90,3 +91,4 @@ layout: default
 
 str_glue(template, summary = pre, block = big) %>%
   writeUTF8(file = here("docs", "_index.md"))
+
