@@ -26,13 +26,14 @@ params:
 
 title         : "`r params$icao`"
 author        : "AIU Home"
-logo          : "./images/euctrl-logo-noname_48x48.png"
-favicon       : "./images/euctrl-logo-noname_48x48.png"
-self_contained: FALSE
 
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
+    logo: "/images/euctrl-logo-noname_48x48.png"
+    favicon: "/favicon.png"
+    lib_dir: 'docs/libs'
+    self_contained: FALSE
 ---
 
 <script>
@@ -52,44 +53,49 @@ library(dplyr)
 library(tidyr)
 library(plotly)
 library(magick)
+library(here)
 ```
 
 
 ```{r plotly-utility}
 tick_yr <- list(
-                dtick = 1,
-                ticktext = list("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-                tickvals = list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
-                tickmode = "array",
-                range = c(0.5,12.5)
-              )
+  dtick = 1,
+  ticktext = list("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+  tickvals = list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+  tickmode = "array",
+  range = c(0.5, 12.5)
+)
 
 tick_yr_no_title <- list(
-                         title = "",
-                         dtick = 1,
-                         ticktext = list("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-                         tickvals = list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),tickmode = "array",
-                         range = c(0.5,12.5)
-                        )
+  title = "",
+  dtick = 1,
+  ticktext = list("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+  tickvals = list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+  tickmode = "array",
+  range = c(0.5, 12.5)
+)
 
-pick_mth <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+pick_mth <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 config_bar_remove_buttons <- c(
-                              'sendDataToCloud',
-                              'autoScale2d',
-                              "select2d",
-                              'lasso2d',
-                              'pan2d',
-                              'zoom2d',
-                              'zoomIn2d',
-                              'zoomOut2d',
-                              'zoomInGeo',
-                              'zoomOutGeo',
-                              'hoverClosestCartesian',
-                              'hoverCompareCartesian',
-                              'toggleSpikelines',
-                              'drawrect'
-                              )
+  "sendDataToCloud",
+  "autoScale2d",
+  "select2d",
+  "lasso2d",
+  "pan2d",
+  "zoom2d",
+  "zoomIn2d",
+  "zoomOut2d",
+  "zoomInGeo",
+  "zoomOutGeo",
+  "hoverClosestCartesian",
+  "hoverCompareCartesian",
+  "toggleSpikelines",
+  "drawrect"
+)
 ```
 
 # Overview {data-icon="fa-home"}
@@ -98,57 +104,55 @@ config_bar_remove_buttons <- c(
 ### Aerodrome Layout
 
 ```{r airport-layout}
-
-if( file.exists(FILE <- paste0("./layouts/",params$icao,".png")) == 'TRUE' )
-  { knitr::include_graphics(paste0("./layouts/", params$icao, ".png")) }
-
+apt_layout_file <- here("layouts", paste0(params$icao,".png"))
+if( file.exists(apt_layout_file)) {
+  knitr::include_graphics(apt_layout_file)
+}
 ```
 
 ### General
 
 ```{r apt-id}
-
-ID_TBL    <- tribble(
-                  ~ITEM        , 
-                  ~TEXT1       ,
-                  ~TEXT2
-                  ,"Airport"   , params$name  , ""
-                  ,"ICAO/IATA" , paste0(params$icao, "/", params$iata) , ""
-                  ,"State"     , params$state , ""
-                  ,""          ,""            , ""
-                  )
+ID_TBL <- tribble(
+  ~ITEM, ~TEXT1, ~TEXT2,
+  "Airport", params$name, "",
+  "ICAO/IATA", paste0(params$icao, "/", params$iata), "",
+  "State", params$state, "",
+  "", "", ""
+)
 
 RWY_CONFIG <- params$config %>%
-              mutate(ITEM = "") %>%
-              select(ITEM, 
-                     TEXT1 = CONFIGURATION, 
-                     TEXT2 = SHARE_PCT ) %>%
-              mutate(TEXT2 = paste0(round( 100 * TEXT2) , "%")) %>% 
-              na.omit()
+  mutate(ITEM = "") %>%
+  select(ITEM,
+    TEXT1 = CONFIGURATION,
+    TEXT2 = SHARE_PCT
+  ) %>%
+  mutate(TEXT2 = paste0(round(100 * TEXT2), "%")) %>%
+  na.omit()
 
 RWY_CONFIG$ITEM[1] <- "Configurations in 2019"
 
-ID_TBL <- ID_TBL %>% 
-          bind_rows(RWY_CONFIG)
+ID_TBL <- ID_TBL %>%
+  bind_rows(RWY_CONFIG)
 
 ID_TBL %>%
- datatable(
-          options = list( 
-                        dom = "t",        
-                        ordering = FALSE,  
-                        autoWidth = TRUE,
-                        columnDefs = list(list(width = '150px', targets = c(0))), 
-                        scrollX = TRUE
-                        ),
-                    colnames  = rep("", ncol(ID_TBL)),
-                    rownames  = FALSE,
-                    selection = 'none',
-                    caption = htmltools::tags$caption(
-                                                      style = 'caption-side: bottom; text-align: right;',
-                                                              'Only configurations with a minimum of 3% share are shown.'
-                                                      )
-         ) %>%
- formatStyle(names(ID_TBL),lineHeight='70%')
+  datatable(
+    options = list(
+      dom        = "t",
+      ordering   = FALSE,
+      autoWidth  = TRUE,
+      columnDefs = list(list(width = "150px", targets = c(0))),
+      scrollX    = TRUE
+    ),
+    colnames  = rep("", ncol(ID_TBL)),
+    rownames  = FALSE,
+    selection = "none",
+    caption   = htmltools::tags$caption(
+      style   = "caption-side: bottom; text-align: right;",
+      "Only configurations with a minimum of 3% share are shown."
+    )
+  ) %>%
+  formatStyle(names(ID_TBL), lineHeight = "70%")
 
 ```
 
@@ -156,118 +160,121 @@ ID_TBL %>%
 ### Summary
 
 ```{r front-page-table}
+if (params$apdf == "Y") {
+  source(here("R", "APT_DSHBD_FRONTPAGE.r"))
 
-if (params$apdf == 'Y')
-{   
+  out <- prepare_front_page_DT(
+    params$icao,
+    params$tfc,
+    params$asma_mm,
+    params$txot_mm,
+    params$atfm,
+    params$ldgsum,
+    params$latest
+  )
 
-source("./APT_DSHBD_FRONTPAGE.R")
+  out %>%
+    datatable(
+      options = list(
+        dom         = "t",
+        pageLength  = nrow(out),
+        ordering    = FALSE,
+        columnDefs  = list(list(
+          className = "dt-center",
+          targets   = "_all"
+        )),
+        fnDrawCallback = htmlwidgets::JS("function(){HTMLWidgets.staticRender();}")
+      ),
+      escape = FALSE,
+      colnames = c(
+        "Indicator",
+        "Year 2019",
+        "Most Recent Month",
+        "12-month Trend"
+      ),
+      rownames = FALSE,
+      caption = htmltools::tags$caption(
+        style = "caption-side: bottom; text-align: right;",
+        "Performance measures (other than traffic) are typically reported for the month preceeding the previous month, i.e. July -> May. Data reported under Most Recent Month dating back further point at on-going quality validation or missing reporting."
+      )
+    ) %>%
+    spk_add_deps()
+} else {
+  source(here("R", "APT_DSHBD_FRONTPAGE.r"))
 
-out <- prepare_front_page_DT(params$icao, 
-                             params$tfc, 
-                             params$asma_mm, 
-                             params$txot_mm, 
-                             params$atfm, 
-                             params$ldgsum, 
-                             params$latest)
+  out <- prepare_front_page_NON_APDF(
+    params$icao,
+    params$tfc,
+    params$atfm,
+    params$ldgsum,
+    params$latest
+  )
 
-out %>% 
-  datatable(options   = list(dom            = "t",
-                             pageLength     = nrow(out),
-                             ordering       = FALSE,
-                             columnDefs     = list(list(className = 'dt-center', 
-                                                        targets   = "_all" )),
-                             fnDrawCallback = htmlwidgets::JS('function(){HTMLWidgets.staticRender();}')
-                          ),
-            escape    = FALSE,
-            colnames  = c("Indicator",
-                          "Year 2019",
-                          "Most Recent Month",
-                          "12-month Trend"),
-            rownames  = FALSE, 
-            caption   = htmltools::tags$caption(style = 'caption-side: bottom; text-align: right;',
-                        'Performance measures (other than traffic) are typically reported for the month preceeding the previous month, i.e. July -> May. Data reported under Most Recent Month dating back further point at on-going quality validation or missing reporting.')
-            ) %>% 
-  spk_add_deps() 
-
-} else
-{
-
-source("./APT_DSHBD_FRONTPAGE.R")
-
-out <- prepare_front_page_NON_APDF( params$icao, 
-                                    params$tfc, 
-                                    params$atfm, 
-                                    params$ldgsum, 
-                                    params$latest)
-
-out %>% 
-  datatable(options   = list(dom            = "t",
-                             pageLength     = nrow(out),
-                             ordering       = FALSE,
-                             columnDefs     = list(list(className = 'dt-center', 
-                                                        targets   = "_all" )),
-                             fnDrawCallback = htmlwidgets::JS('function(){HTMLWidgets.staticRender();}')
-                          ),
-            escape    = FALSE,
-            colnames  = c("Indicator",
-                          "Year 2019",
-                          "Most Recent Month",
-                          "12-month Trend"),
-            rownames  = FALSE, 
-            caption   = htmltools::tags$caption(style = 'caption-side: bottom; text-align: right;',
-                        'Performance measures (other than traffic) are typically reported for the month preceeding the previous month, i.e. July -> May. Data reported under Most Recent Month dating back further point at on-going quality validation or missing reporting.')
-            ) %>% 
-  spk_add_deps() 
-  
+  out %>%
+    datatable(
+      options = list(
+        dom = "t",
+        pageLength = nrow(out),
+        ordering = FALSE,
+        columnDefs = list(list(
+          className = "dt-center",
+          targets = "_all"
+        )),
+        fnDrawCallback = htmlwidgets::JS("function(){HTMLWidgets.staticRender();}")
+      ),
+      escape = FALSE,
+      colnames = c(
+        "Indicator",
+        "Year 2019",
+        "Most Recent Month",
+        "12-month Trend"
+      ),
+      rownames = FALSE,
+      caption = htmltools::tags$caption(
+        style = "caption-side: bottom; text-align: right;",
+        "Performance measures (other than traffic) are typically reported for the month preceeding the previous month, i.e. July -> May. Data reported under Most Recent Month dating back further point at on-going quality validation or missing reporting."
+      )
+    ) %>%
+    spk_add_deps()
 }
-  
+
 ```
 
 ### Daily Traffic Variation snapshot
 
 ```{r tfcvar-snapshot, results='asis'}
-
-if(nrow(params$tfcvar) < 1)
-{ 
+if(nrow(params$tfcvar) < 1) { 
   cat("<p><b>Traffic evolution for this airport under development!</b>")
-}else
-{
+} else {
+  fig1 <- params$tfcvar %>%
+    plot_ly() %>%
+    add_lines(x   = ~DAY, 
+              y   = ~FLTS, 
+              name = "Flights") %>%
+    add_lines(x    = ~DAY, 
+              y    = ~FLTS_2019, 
+              name = "Flights 2019 (Reference)", 
+              line = list(dash = "dot", 
+                          color = "red")) %>%
+    layout(yaxis = list(title = "movements"))
+
+  fig2 <- params$tfcvar %>%
+    plot_ly() %>%
+    add_lines(x    = ~ DAY, 
+              y    = ~ MOV_AVG_WK, 
+              name = " <br> % vs 2019 <br> (7-day Moving Average)") %>%
+    layout( xaxis = list(title      = ""),
+            yaxis = list(title      = "% change from 2019",
+                         titlefont  = list(size = 11),
+                         tickformat = "%"))
   
-fig1 <- params$tfcvar %>%
-  plot_ly() %>%
-  add_lines(x   = ~DAY, 
-            y   = ~FLTS, 
-            name = "Flights") %>%
-  add_lines(x    = ~DAY, 
-            y    = ~FLTS_2019, 
-            name = "Flights 2019 (Reference)", 
-            line = list(dash = "dot", 
-                        color = "red"))%>%
-  layout(yaxis = list(title = "movements"))
-
-fig2 <- params$tfcvar %>%
-  plot_ly() %>%
-  add_lines(x          = ~DAY, 
-            y          = ~MOV_AVG_WK, 
-            name       = " <br> % vs 2019 <br> (7-day Moving Average)"
-            ) %>%
-  layout( xaxis = list(title      = ""),
-          yaxis = list(title      = "% change from 2019",
-                       titlefont  = list(size = 11),
-                       tickformat = "%"))
-
-fig <- subplot(fig1, 
-               fig2, 
-               nrows=2, 
-               shareX = TRUE) %>%
-  layout( hovermode = "x unified")%>%
-  config( displaylogo           = FALSE,
-          modeBarButtonsToRemove = config_bar_remove_buttons)
-
-fig
-
+  fig <- subplot(fig1, fig2, nrows = 2, shareX = TRUE) %>%
+    layout(hovermode = "x unified") %>%
+    config(displaylogo            = FALSE,
+           modeBarButtonsToRemove = config_bar_remove_buttons)
+  
+  fig
 }
-
 ```
 
 
@@ -279,37 +286,43 @@ fig
 ```{r annual traffic}
 
 mvts_pa <- params$tfc %>% 
-            select(YEAR, FLT_TOT) %>%
-            group_by(YEAR) %>%
-            summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE)) %>% 
-            ungroup()
+  select(YEAR, FLT_TOT) %>%
+  group_by(YEAR) %>%
+  summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE)) %>% 
+  ungroup()
 
 cum_mvts <- params$tfc %>% 
-              select(YEAR, MONTH_NUM, FLT_DATE, FLT_TOT) %>% 
-              mutate(across(c(YEAR,MONTH_NUM), as.numeric)) %>% 
-              filter(YEAR %in% c(max(YEAR), max(YEAR)-1))
+  select(YEAR, MONTH_NUM, FLT_DATE, FLT_TOT) %>% 
+  mutate(across(c(YEAR,MONTH_NUM), as.numeric)) %>% 
+  filter(YEAR %in% c(max(YEAR), max(YEAR) - 1))
 
 this_year_max_month <- cum_mvts %>% 
-                        filter(YEAR == max(YEAR)) %>% 
-                        pull(MONTH_NUM) %>% 
-                        max() %>%
-                        unique()
+  filter(YEAR == max(YEAR)) %>% 
+  pull(MONTH_NUM) %>% 
+  max() %>%
+  unique()
 
 cum_mvts <- cum_mvts %>% 
-              filter(MONTH_NUM <= this_year_max_month) %>% 
-              group_by(YEAR) %>% 
-              summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE)) %>% 
-              ungroup() %>% 
-              mutate(CHANGE = ( FLT_TOT - lag(FLT_TOT))/lag(FLT_TOT) )
+  filter(MONTH_NUM <= this_year_max_month) %>% 
+  group_by(YEAR) %>% 
+  summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  mutate(CHANGE = ( FLT_TOT - lag(FLT_TOT))/lag(FLT_TOT) )
 
-msg     <- paste0( "<b>Change Jan-", 
-                   pick_mth[this_year_max_month],
-                   "<br>", 
-                   cum_mvts$YEAR[2],
-                   " vs ", 
-                   cum_mvts$YEAR[1],
-                   ":<br>", 
-                   round(100* cum_mvts[2,"CHANGE"], 2),"% </b>")
+msg_tmpl <- "<b>Change Jan-{mnt}<br>{yr2} vs {yr1}:<br>{pct}% </b>"
+msg <- str_glue(msg_tmpl,
+                mnt = pick_mth[this_year_max_month],
+                yr1 = cum_mvts$YEAR[1],
+                yr2 = cum_mvts$YEAR[2],
+                pct = round(100* cum_mvts[2,"CHANGE"], 2))
+# msg <- paste0("<b>Change Jan-", 
+#               pick_mth[this_year_max_month],
+#               "<br>", 
+#               cum_mvts$YEAR[2],
+#               " vs ", 
+#               cum_mvts$YEAR[1],
+#               ":<br>", 
+#               round(100* cum_mvts[2,"CHANGE"], 2),"% </b>")
 
 msg_y   <- mvts_pa %>% 
             filter(YEAR == as.integer(max(YEAR)) - 1) %>% 
@@ -347,49 +360,61 @@ mvts_pa %>%
 ### Monthly Traffic
 
 ```{r}
-
-mvts_pm <- params$tfc %>% 
-            select(YEAR, MONTH_NUM, FLT_TOT) %>%
-            group_by(YEAR, MONTH_NUM) %>%
-            summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE))%>% 
-            ungroup()
+mvts_pm <- params$tfc %>%
+  select(YEAR, MONTH_NUM, FLT_TOT) %>%
+  group_by(YEAR, MONTH_NUM) %>%
+  summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE)) %>%
+  ungroup()
 
 mvts_pm_max <- mvts_pm %>% filter(FLT_TOT == max(FLT_TOT))
 
-msg         <- paste0( "<b>Busiest month <br>(last 5 years): <br>",
-                       mvts_pm_max$MONTH_NUM, "-", 
-                       mvts_pm_max$YEAR,
-                       "<br>", mvts_pm_max$FLT_TOT, "</b>")
+msg <- paste0(
+  "<b>Busiest month <br>(last 5 years): <br>",
+  mvts_pm_max$MONTH_NUM, "-",
+  mvts_pm_max$YEAR,
+  "<br>", mvts_pm_max$FLT_TOT, "</b>"
+)
 
 xax <- tick_yr_no_title
 
-yax <- list(title="Number of Flights", 
-            rangemode = "tozero",
-            titlefont = list(size = 11))
+yax <- list(
+  title = "Number of Flights",
+  rangemode = "tozero",
+  titlefont = list(size = 11)
+)
 
 mvts_pm <- mvts_pm %>%
-            mutate(YEAR= as.character(YEAR))
+  mutate(YEAR = as.character(YEAR))
 
 mvts_pm %>%
-                plot_ly(x     = ~MONTH_NUM, 
-                        y     = ~FLT_TOT, 
-                        group = ~YEAR,
-                        color = ~YEAR
-                        ) %>%
-                add_trace( type = 'scatter', 
-                           mode = 'markers+lines',
-                           hovertemplate = "%{y:.r}") %>%
-                add_annotations( text      = msg, 
-                                 x         = mvts_pm_max$MONTH_NUM, 
-                                 y         = mvts_pm_max$FLT_TOT, 
-                                 showarrow = TRUE, 
-                                 ax        = 50, 
-                                 ay       = 100 ) %>%
-                layout( xaxis     = xax, 
-                        yaxis     = yax,
-                        hovermode = "x unified") %>%       
-                config( displaylogo = FALSE,
-                        modeBarButtonsToRemove = config_bar_remove_buttons )
+  plot_ly(
+    x = ~MONTH_NUM,
+    y = ~FLT_TOT,
+    group = ~YEAR,
+    color = ~YEAR
+  ) %>%
+  add_trace(
+    type = "scatter",
+    mode = "markers+lines",
+    hovertemplate = "%{y:.r}"
+  ) %>%
+  add_annotations(
+    text = msg,
+    x = mvts_pm_max$MONTH_NUM,
+    y = mvts_pm_max$FLT_TOT,
+    showarrow = TRUE,
+    ax = 50,
+    ay = 100
+  ) %>%
+  layout(
+    xaxis = xax,
+    yaxis = yax,
+    hovermode = "x unified"
+  ) %>%
+  config(
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = config_bar_remove_buttons
+  )
 
 ```
 
