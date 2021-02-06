@@ -13,7 +13,7 @@ save_osm_apt <- function(
   .gg,
   .apt_icao,
   .format = ".png",
-  .dir="./data-ad-charts/"){
+  .dir="./layouts/"){
   #filename
   fn <- paste(.apt_icao, .format, sep = "")
   # save plot
@@ -112,14 +112,14 @@ geom_airport <- function(apt_df) {
                mapping = aes(x = he_longitude_deg, y = he_latitude_deg,
                              label = he_ident, angle = he_heading_degT))
   
-  save_osm_apt(gg, apt_icao, .dir = "data-ad-rwy-charts")  
+  save_osm_apt(gg, apt_icao, .dir = "layouts")  
 }
 
 
 # apt_url <- "https://ourairports.com/data/airports.csv"
-apt_url <- here::here("data", "airports.csv")
+apt_url <- here::here("data", "airports.csv.gz")
 # rwy_url <- "https://ourairports.com/data/runways.csv"
-rwy_url <- here::here("data", "runways.csv")
+rwy_url <- here::here("data", "runways.csv.gz")
 
 apdf_apts <- readxl::read_excel(
   here::here("data-ad-charts", "APT_BBOX.xlsx"),
