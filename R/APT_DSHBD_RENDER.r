@@ -20,7 +20,7 @@ APTS <- APT_DF %>%  pull(AIRPORT)
 # ---- CALL RENDER DASHBOARDS ----
 
 APT_RANGE <- 1:length(APTS)
-APT_RANGE <- 2:3
+# APT_RANGE <- 2:3
 APTS %>%
   magrittr::extract(APT_RANGE) %>%
   purrr::walk(
