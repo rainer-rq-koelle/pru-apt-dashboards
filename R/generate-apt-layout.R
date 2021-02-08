@@ -101,6 +101,8 @@ geom_airport <- function(apt_df) {
   apt_icao  <- apt_df %>% pull(.data$icao) %>% unique()
   apt_name  <- apt_df %>% pull(.data$APT_NAME) %>% unique()
   bb_lonlat <- apt_df %>% pull(.data$BBOX)     %>% unique() %>% bb_coerce()
+
+  cat(apt_icao)
   
   gg_base <- osm_apt(bb_lonlat, .add_north = TRUE)
   gg <- gg_base +
@@ -122,8 +124,10 @@ apt_url <- here::here("data", "airports.csv.gz")
 rwy_url <- here::here("data", "runways.csv.gz")
 
 apdf_apts <- readxl::read_excel(
-  here::here("data-ad-charts", "APT_BBOX.xlsx"),
+  here::here("data", "APT_BBOX.xlsx"),
   sheet = "Monitored")
+
+apts_XXX <- readr::read_csv2(here("data", "PRU_AIRPORT_INFO.csv"))
 
 apts_pru <- "STAT_AIRPORT_INFO.csv" %>%
   here::here("data", .) %>%
@@ -131,6 +135,7 @@ apts_pru <- "STAT_AIRPORT_INFO.csv" %>%
 
 apts <- read_csv(apt_url) %>%
   select(ident, latitude_deg, longitude_deg)
+
 rwys <- read_csv(rwy_url) %>%
   mutate(closed = as.logical(closed)) %>%
   # prefix 1-digit RWY id with a 0
@@ -159,6 +164,9 @@ aaa <- apts_pru %>%
 
 
 # generate ALL
+problematic_ones <- c(
+  "EDDT"
+)
 aaa %>%
   group_by(APT_ICAO) %>%
   mutate(icao = APT_ICAO) %>%
@@ -166,6 +174,8 @@ aaa %>%
   # nth_group(2) %>% 
   # of airport's ICAO id(s)
   # filter(icao %in% c("EHAM", "LEMD", "LSZH")) %>% 
+  filter(!icao %in% problematic_ones) %>%
+  slice(1) %>% # take the first row if group contains multiple rows
   group_walk(~ geom_airport(.x))
 
 # refine pngs
