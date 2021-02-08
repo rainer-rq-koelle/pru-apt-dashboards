@@ -12,20 +12,19 @@ library(lubridate)
 source(here("R","APT_DSHBD_UTILS.R"), encoding = "UTF8")
 #.----
 
-# AIRPORT CODES SELECTION ----
-
-APTS <- APT_DF %>%  pull(AIRPORT)
-#APTS <- 'EBBR'    # DEBUG
-
 # ---- CALL RENDER DASHBOARDS ----
 
-APT_RANGE <- 1:length(APTS)
-# APT_RANGE <- 2:3
-APTS %>%
-  magrittr::extract(APT_RANGE) %>%
+APT_DF %>%
+  # filter(row_number() %in% seq(1:2)) %>%   # for debug
+  filter(AIRPORT %in% c("EBLG")) %>%   # for debug
+  arrange(AIRPORT) %>%
+  pull(AIRPORT) %>%
+  # magrittr::extract(seq(3:5)) %>%        # for debug
   purrr::walk(
-    .f = ~rmarkdown::render(
+    .f = function(icao) {
+      cat(icao)
+      rmarkdown::render(
       input       = here("APT_DSHBD_RENDER.Rmd"),
-      params      = prepare_params(.), 
-      output_file = here("docs", paste0(., ".html"))
-  ))
+      params      = prepare_params(icao), 
+      output_file = here("docs", paste0(icao, ".html")))
+      })
