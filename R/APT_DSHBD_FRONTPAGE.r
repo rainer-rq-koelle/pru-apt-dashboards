@@ -1,15 +1,13 @@
 # ..........................................................................----
 # --- SET UP ----
 # ---
-library(tidyverse)
-library(DT)
-library(formattable)
-library(sparkline)
+
 # .----
 
 # ..............................----
 # ---- SUMMARY FOR APDF APT     ----
 # ..............................----
+
 
 prepare_front_page_DT <- function(.icao,
                                   .tfc,
@@ -18,11 +16,16 @@ prepare_front_page_DT <- function(.icao,
                                   .atfm,
                                   .ldgsum,
                                   .latest) {
-  icao   <- .icao
-  tfc    <- .tfc
-  asma   <- .asma
-  txot   <- .txot
-  atfm   <- .atfm
+  library(tidyverse)
+  library(DT)
+  library(formattable)
+  library(sparkline)
+
+  icao <- .icao
+  tfc <- .tfc
+  asma <- .asma
+  txot <- .txot
+  atfm <- .atfm
   ldgsum <- .ldgsum
   latest <- .latest
 
@@ -121,7 +124,9 @@ prepare_front_page_DT <- function(.icao,
   )
 
   asma_spk <- sparkline::spk_chr(rev(perf2$AVG_ADD_ASMA[1:13]), type = "bar")
+
   txot_spk <- sparkline::spk_chr(rev(perf2$AVG_ADD_TXOT[1:13]), type = "bar")
+
   atfm_spk <- sparkline::spk_chr(rev(perf2$AVG_ATFM_ADLY[1:13]), type = "bar")
 
   spark_tbl <- tibble(
@@ -247,16 +252,15 @@ prepare_front_page_NON_APDF <- function(.icao,
     select(YEAR, MONTH_NUM, FLT_DEP, FLT_ARR, FLT_TOT) %>%
     group_by(YEAR, MONTH_NUM) %>%
     summarise(FLT_TOT = sum(FLT_TOT, na.rm = TRUE)) %>%
-    mutate(MOF = str_glue("{yr}-{mm}", yr = YEAR, mm = sprintf("%02d", MONTH_NUM))) %>%
+    mutate(MOF = paste0(YEAR, "-", sprintf("%02d", MONTH_NUM))) %>%
     extract_last_months()
 
   atfm2 <- atfm %>%
     filter(AIRPORT == icao) %>%
     select(YEAR, MONTH_NUM, ATFM_ADLY = DLY_APT_ARR_1, N_ATFM_A = FLT_ARR_1) %>%
     group_by(YEAR, MONTH_NUM) %>%
-    summarise(ATFM_ADLY = sum(ATFM_ADLY, na.rm = TRUE),
-              N_ATFM_A = sum(N_ATFM_A, na.rm = TRUE)) %>%
-    mutate(MOF = str_glue("{yr}-{mm}", yr = YEAR, mm = sprintf("%02d", MONTH_NUM))) %>%
+    summarise(ATFM_ADLY = sum(ATFM_ADLY, na.rm = TRUE), N_ATFM_A = sum(N_ATFM_A, na.rm = TRUE)) %>%
+    mutate(MOF = paste0(YEAR, "-", sprintf("%02d", MONTH_NUM))) %>%
     extract_last_months()
 
   perf <- tfc2 %>%
@@ -278,8 +282,10 @@ prepare_front_page_NON_APDF <- function(.icao,
       ) %>%
       mutate_if(is.double, round, 3)
 
-    df$CHECK     <- NA
-    df$CHECK[1]  <- "NOW"
+    df$CHECK <- NA
+
+    df$CHECK[1] <- "NOW"
+
     df$CHECK[13] <- "AGO"
 
     return(df)
@@ -310,25 +316,41 @@ prepare_front_page_NON_APDF <- function(.icao,
     mutate(IND = "ATFM_A") %>%
     select(IND, CURRENT = AVG_ATFM_ADLY, CHANGE_M2M_P = DIFF_ATFM_A_P)
 
-  out <- tribble(
-    ~ IND,    ~NAM,
-    "TFC",    "Total traffic (annual & recent month)",
-    "ATFM_A", "Average arrival ATFM delay [min/arr]"
-    )
+  IND <- c("TFC", "ATFM_A")
+
+  NAM <- c(
+    "Total traffic (annual & recent month)",
+    "Average arrival ATFM delay [min/arr]"
+  )
+
+  nam <- tibble(IND = IND, NAM = NAM)
+
+  out <- bind_rows(r_tfc, r_atfm)
 
   out <- out %>%
     left_join(spark_tbl, by = "IND")
+
   out <- out %>%
     left_join(nam, by = "IND")
+
   out <- out %>%
     select(NAM, CURRENT, CHANGE_M2M_P, SPK)
+
+
   out <- out %>% mutate(YEAR2019 = 0)
+
   out[1, "YEAR2019"] <- ldgsum$NB_NM_TOT
+
   out[2, "YEAR2019"] <- ldgsum$AVG_ARR_ATFM
+
   out$CHANGE_M2M_P <- NULL
+
   out <- out %>% mutate(CURRENT = "0")
+
   out[1, "CURRENT"] <- latest$TFC
+
   out[2, "CURRENT"] <- formatC(latest$AVG_ARR_ATFM, digits = 2, format = "f")
+
   out <- out %>% select(NAM, YEAR2019, CURRENT, SPK)
 
   return(out)
