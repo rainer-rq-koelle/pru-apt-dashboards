@@ -8,7 +8,7 @@ library(stringr)
 library(here)
 # .----
 
-APT <- readr::read_csv2(here("data", "PRU_AIRPORT_INFO.csv"))
+APT <- readr::read_csv2(here("data", "APT_DSHBD_AIRPORT.csv"))
 
 APT <- APT %>%
   select(

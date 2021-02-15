@@ -1,3 +1,11 @@
+# ..........................................................................----
+# --- SET UP ----
+# ---
+
+cat("\014")        # Clear Environment           ----
+rm(list = ls())    # Clear Console               ----
+
+
 library(dplyr)
 library(readxl)
 library(readr)
@@ -24,59 +32,94 @@ EXPORT_QUERY <- function(schema, query) {
 
 
 # ..........................................................................----
-# 1 - EXTRACT NM DATA SETS FROM ORACLE DB ----
+# 1 - EXTRACT DATA FROM ORACLE DATABASE  ----
 # ..........................................................................----
 
+
 #***********************************************************************
-# ---- TOP 100 AIRPORT INFOS (2019) ----
+# ---- APT LIST ----
 #***********************************************************************
-EXPORT_AIRPORT_INFO <- function() {
-  QUERY <- "SELECT * FROM PRU_AIRPORT.V_STAT_TOP100_APT_INFO"
-  EXPORT_QUERY("PRU_AIRPORT", QUERY)
-}
-#***************************************************
-# ---- NM APT TRAFFIC ----
-#***************************************************
-EXPORT_NM_APT_TRAFFIC <- function() {
-  QUERY <- "SELECT * FROM PRU_AIRPORT.V_STAT_NM_APT_TRAFFIC"
-  EXPORT_QUERY("PRU_AIRPORT", QUERY)
+EXPORT_APT_DSHBD_AIRPORT <- function() {
+  QUERY <- "SELECT * FROM PRUDEV.V_APT_DSHBD_AIRPORT"
+  EXPORT_QUERY("PRU_DEV", QUERY)
 }
 
-EXPORT_NM_APT_TRAFFIC_MOV_AVG <- function() {
-  qqq <- read_file("data/NM_APT_TRAFFIC_MOV_AVG.SQL")
-  EXPORT_QUERY("PRU_DEV", qqq)
-}
+EXPORT_APT_DSHBD_AIRPORT() %>%
+  readr::write_csv2(here::here("data", "APT_DSHBD_AIRPORT.csv"))
 
-#***************************************************
-# ---- NM APT THROUGHPUT ----
-#***************************************************
-EXPORT_NM_APT_THROUGHPUT <- function() {
-  QUERY <- "
-    SELECT
-      *
-    FROM
-      PRU_AIRPORT.STAT_NM_APT_THROUGHPUT
-    WHERE
-      AIRPORT IN (SELECT DISTINCT AIRPORT FROM PRU_AIRPORT.V_STAT_TOP100_APT_INFO)"
+
+#***********************************************************************
+# ---- APT RWY CONFIG ----
+#***********************************************************************
+EXPORT_APT_DSHBD_RWY_CONFIG <- function() {
+  QUERY <- "SELECT * FROM PRU_AIRPORT.V_APT_DSHBD_RWY_CONFIG"
   EXPORT_QUERY("PRU_AIRPORT", QUERY)
 }
 
-# .----
-# > WRITING CSV FILES IN DATA FOLDER ----
+EXPORT_APT_DSHBD_RWY_CONFIG() %>%
+  readr::write_csv2(here::here("data", "APT_DSHBD_RWY_CONFIG.csv"))
 
-EXPORT_AIRPORT_INFO() %>%
-  readr::write_csv2(here::here("data", "PRU_AIRPORT_INFO.csv"))
 
-EXPORT_NM_APT_TRAFFIC() %>%
-  readr::write_csv2(here::here("data", "NM_APT_TRAFFIC.csv"))
+#***************************************************
+# ---- APT TRAFFIC ----
+#***************************************************
+EXPORT_APT_DSHBD_TRAFFIC <- function() {
+  QUERY <- "SELECT * FROM PRUDEV.V_APT_DSHBD_TRAFFIC"
+  EXPORT_QUERY("PRU_DEV", QUERY)
+}
 
-EXPORT_NM_APT_TRAFFIC_MOV_AVG() %>%
-  readr::write_csv2(here::here("data", "NM_APT_TRAFFIC_MOV_AVG.csv"))
+EXPORT_APT_DSHBD_TRAFFIC() %>%
+  readr::write_csv2(here::here("data", "APT_DSHBD_TRAFFIC.csv"))
 
-EXPORT_NM_APT_THROUGHPUT() %>%
-  readr::write_csv2(here::here("data", "NM_APT_THROUGHPUT.csv"))
 
-# .----
+#***************************************************
+# ---- APT TRAFFIC EVO ----
+#***************************************************
+EXPORT_APT_DSHBD_TRAFFIC_EVO <- function() {
+  QUERY <- "SELECT * FROM PRUDEV.V_APT_DSHBD_TRAFFIC_EVO"
+  EXPORT_QUERY("PRU_DEV", QUERY)
+}
+
+EXPORT_APT_DSHBD_TRAFFIC_EVO() %>%
+  readr::write_csv2(here::here("data", "APT_DSHBD_TRAFFIC_EVO.csv"))
+
+
+#***************************************************
+# ---- APT THROUGHPUT ----
+#***************************************************
+EXPORT_APT_DSHBD_THROUGHPUT <- function() {
+  QUERY <- "SELECT * FROM PRU_AIRPORT.V_APT_DSHBD_THROUGHPUT"
+  EXPORT_QUERY("PRU_AIRPORT", QUERY)
+}
+
+EXPORT_APT_DSHBD_THROUGHPUT() %>%
+  readr::write_csv2(here::here("data", "APT_DSHBD_THROUGHPUT.csv"))
+
+
+#***********************************************************************
+# ---- APT APDF DATA (ASMA / TAXI OUT / TAXI IN / PREDEP DLY)  ----
+#***********************************************************************
+EXPORT_APT_DSHBD_APDF_DATA <- function() {
+  QUERY <- "SELECT * FROM PRU_AIRPORT.V_APT_DSHBD_APDF_DATA"
+  EXPORT_QUERY("PRU_AIRPORT", QUERY)
+}
+
+EXPORT_APT_DSHBD_APDF_DATA() %>%
+  readr::write_csv2(here::here("data", "APT_DSHBD_APDF_DATA.csv"))
+
+
+#***********************************************************************
+# ---- APT TURNAROUND  ----
+#***********************************************************************
+EXPORT_APT_DSHBD_TURNAROUND <- function() {
+  QUERY <- "SELECT * FROM PRU_AIRPORT.V_APT_DSHBD_TURNAROUND"
+  EXPORT_QUERY("PRU_AIRPORT", QUERY)
+}
+
+EXPORT_APT_DSHBD_TURNAROUND() %>%
+  readr::write_csv2(here::here("data", "APT_DSHBD_TURNAROUND.csv"))
+
+
 
 
 # ..........................................................................----
@@ -94,7 +137,7 @@ BASEDIR <- "https://coll.eurocontrol.int/sites/pru/dashboard/Data"
 #***************************************************
 FILENAME <- c("Airport_Arrival_ATFM_Delay.xlsx")
 FILE_IN  <- paste(BASEDIR, FILENAME, sep = "/")
-FILE_OUT <- fs::path_abs(paste0("PIP_", FILENAME), start = here::here("data"))
+FILE_OUT <- fs::path_abs("APT_DSHBD_ATFM.xlsx", start = here::here("data"))
 download.file(FILE_IN, FILE_OUT, mode = "wb")
 
 #*********************************************
@@ -102,50 +145,6 @@ download.file(FILE_IN, FILE_OUT, mode = "wb")
 #*********************************************
 FILENAME <- c("ATFM_Slot_Adherence.xlsx")
 FILE_IN  <- paste(BASEDIR, FILENAME, sep = "/")
-FILE_OUT <- fs::path_abs(paste0("PIP_", FILENAME), start = here::here("data"))
+FILE_OUT <- fs::path_abs("APT_DSHBD_SLOT_AD.xlsx", start = here::here("data"))
 download.file(FILE_IN, FILE_OUT, mode = "wb")
-# .----
-
-
-# ..........................................................................----
-# 3 - EXTRACT APDF DATA SETS FROM ORACLE DB ----
-# ..........................................................................----
-
-#***********************************************************************
-# ---- APT RWY CONFIG (2019)  ----
-#***********************************************************************
-EXPORT_STAT_APDF_RWY_CONFIGURATION_DATA <- function() {
-  QUERY <- "SELECT * FROM PRU_AIRPORT.STAT_AIRPORT_CONFIGURATION"
-  EXPORT_QUERY("PRU_AIRPORT", QUERY)
-}
-
-#***********************************************************************
-# ---- ASMA / TAXI OUT / TAXI IN / PREDEP DLY  ----
-#***********************************************************************
-EXPORT_STAT_APDF_MONTLHY_DATA <- function() {
-  QUERY <- "SELECT * FROM PRU_AIRPORT.V_STAT_APDF_MONTHLY_DATA"
-  EXPORT_QUERY("PRU_AIRPORT", QUERY)
-}
-
-#***********************************************************************
-# ---- TURNAROUND  ----
-#***********************************************************************
-EXPORT_STAT_APDF_TURNAROUND_DATA <- function() {
-  QUERY <- "SELECT * FROM PRU_AIRPORT.STAT_AIRPORT_TURN_ARROUND"
-  EXPORT_QUERY("PRU_AIRPORT", QUERY)
-}
-
-
-# .----
-#***********************************************************************
-# > WRITING CSV FILES IN DATA FOLDER ----
-#***********************************************************************
-EXPORT_STAT_APDF_RWY_CONFIGURATION_DATA() %>%
-  readr::write_csv2(here::here("data", "APDF_RWY_CONFIGURATION_DATA.csv"))
-
-EXPORT_STAT_APDF_MONTLHY_DATA() %>%
-  readr::write_csv2(here::here("data", "APDF_MONTHLY_DATA.csv"))
-
-EXPORT_STAT_APDF_TURNAROUND_DATA() %>%
-  readr::write_csv2(here::here("data", "APDF_TURNAROUND_DATA.csv"))
 # .----

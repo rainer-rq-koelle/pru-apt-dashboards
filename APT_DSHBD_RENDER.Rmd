@@ -147,12 +147,9 @@ ID_TBL %>%
     colnames  = rep("", ncol(ID_TBL)),
     rownames  = FALSE,
     selection = "none",
-    caption   = htmltools::tags$caption(
-      style   = "caption-side: bottom; text-align: right;",
-      "Only configurations with a minimum of 3% share are shown."
-    )
-  ) %>%
-  formatStyle(names(ID_TBL), lineHeight = "70%")
+    caption   = htmltools::tags$caption(style   = "caption-side: bottom; text-align: right;",
+                                        "Only configurations with a minimum of 3% share are shown.")) %>%
+    formatStyle(names(ID_TBL), lineHeight = "70%")
 
 ```
 
@@ -336,7 +333,7 @@ key_msg <- list(x = unique(max(mvts_pa$YEAR)),
 
 xax <- list(title="")
 
-yax <- list(title="Number of Flights", 
+yax <- list(title="Number of flights", 
             titlefont = list(size = 11))
 
 mvts_pa <- mvts_pa %>%
@@ -378,7 +375,7 @@ msg <- paste0(
 xax <- tick_yr_no_title
 
 yax <- list(
-  title = "Number of Flights",
+  title = "Number of flights",
   rangemode = "tozero",
   titlefont = list(size = 11)
 )
@@ -652,7 +649,7 @@ button_list  <- lapply(1:length(filter_years),function(x){
 
 button_type_list <-  list(  type = 'buttons',
                             bgcolor = '#c3c1e8',
-                            active = length(filter_years)-1,
+                            active = length(filter_years),
                             direction = 'right', 
                             xref = "paper",
                             x = 0.3,
@@ -681,7 +678,7 @@ atfm_pm %>% plot_ly(x          = ~MONTH_NUM,
                     transforms = list(list(type = 'filter',
                                            target = "customdata",
                                            operation = '=',
-                                           value = "2020"))) %>%
+                                           value = "2021"))) %>%
             layout( barmode     = "stack",
                     hovermode   = "x unified",
                     xaxis       = tick_yr_no_title,
@@ -731,7 +728,7 @@ if(nrow(worst_day_last_year) >= 5)
     }else
     {
      key_msg <- paste0("<b>Worst day in last 12 months: "   , worst_day_date,
-                       "<br>with total Arrival ATFM Delay: ", worst_day_dly, "min",
+                       "<br>with total Arrival ATFM delay: ", worst_day_dly, "min",
                        "<br>(avg. Arrival ATFM Delay: "     , round(worst_day_avgATFMdly,2), "min)</b>")
     }
 
@@ -762,7 +759,7 @@ p
   
 ```
 
-### Share of ATFM Delay Current Year
+### Share of ATFM Delay
 
 ```{r atfm-ytd}
 
@@ -801,6 +798,7 @@ share_atfm %>% plot_ly(labels = ~REG_REASON,
 
 ```
 
+<!-- 
 
 # ATFM Slot
 
@@ -817,12 +815,88 @@ share_atfm %>% plot_ly(labels = ~REG_REASON,
  
 ```
 
+## Row -----------------------------------------------------------
+
+### . 
+
+### .
+
+
+# Punctuality
+
+## Row -----------------------------------------------------------
+### Annual Punctuality
+```{r Punctuality YEARLY LAYOUT}
+
+ 
+```
+
+### Monthly Punctuality
+```{r Punctuality MONHTLY LAYOUT}
+
+ 
+```
+
+
+## Row -----------------------------------------------------------
+
+### . 
+
+### .
+
+
+# CCO
+
+## Row -----------------------------------------------------------
+### Annual CCO
+```{r CCO YEARLY LAYOUT}
+
+ 
+```
+
+### Monthly CCO
+```{r CCO MONHTLY LAYOUT}
+
+ 
+```
+
+
+## Row -----------------------------------------------------------
+
+### . 
+
+### .
+
+
+# CDO
+
+## Row -----------------------------------------------------------
+### Annual CDO
+```{r CDO YEARLY LAYOUT}
+
+ 
+```
+
+### Monthly CDO
+```{r CDO MONHTLY LAYOUT}
+
+ 
+```
+
+
+## Row -----------------------------------------------------------
+
+### . 
+
+### .
+
+-->
 
 
 # ASMA Time
 
 ## Row -----------------------------------------------------------
-### Annual ASMA
+### Annual ASMA Time
 
 ```{r ASMA YEARLY LAYOUT}
 if (params$apdf == 'Y')
@@ -855,10 +929,19 @@ ASMA_YY %>%
         ) %>% 
   config( displaylogo = FALSE,
           modeBarButtonsToRemove = config_bar_remove_buttons)
-} 
+
+} else {
+
+cat("
+Analysis on approach times are only available for airports providing the required data 
+using the Airport Operator Data Flow (APDF).
+
+If you belong to the airport and would like to implement such data flow, please contact DANSAP@eurocontrol.int")
+  
+}
 ```
 
-### Monthly ASMA
+### Monthly ASMA Time
 
 ```{r ASMA MONTHLY LAYOUT}
 if (params$apdf == 'Y')
@@ -911,7 +994,7 @@ ASMA_MM %>%
         layout( barmode     = "stack", 
                 hovermode   = "x unified",
                 xaxis       = tick_yr_no_title,
-                yaxis       = list( title="Average ASMA Time [min/arr]",
+                yaxis       = list( title="Average ASMA time [min/arr]",
                                     titlefont = list(size = 11),
                                     hoverformat = ".2f"),
                 showlegend  = TRUE,
@@ -1001,6 +1084,14 @@ TXOT_YY %>%
         ) %>% 
   config( displaylogo = FALSE,
           modeBarButtonsToRemove = config_bar_remove_buttons)
+} else {
+
+cat("
+Analysis on taxi times are only available for airports providing the required data 
+using the Airport Operator Data Flow (APDF).
+
+If you belong to the airport and would like to implement such data flow, please contact DANSAP@eurocontrol.int")
+  
 }
 ```
 
@@ -1173,7 +1264,7 @@ TXIN_MM %>%
 # Pre-Dep Delay
 
 ## Row -----------------------------------------------------------
-### Annual Pre-Departure Delay (as reported by airports)
+### Annual Pre-Departure Delay
 
 ```{r pre-dep-dly-pa}
 if (params$apdf == 'Y')
@@ -1186,7 +1277,7 @@ PDDLY_YY <- params$pddly_yy %>%
 
 PDDLY_YY$DLY_CAT <- factor(PDDLY_YY$DLY_CAT,
                            levels=c("TOT_DLY_UNID", "TOT_DLY_OTHER", "TOT_DLY_89"),
-                           labels=c("unidentified", "other reasons", "ATC pre-departure <br>delay (code 89)"))
+                           labels=c("Unidentified", "Other reasons", "ATC Pre-Departure <br>delay (code 89)"))
 
 
 PDDLY_YY <- PDDLY_YY %>%
@@ -1202,14 +1293,22 @@ PDDLY_YY %>%
       layout( barmode   = "stack",
               hovermode = "x unified",
               xaxis     = list(title = ""),
-              yaxis     = list( title = "Pre-departure delay [min]",
+              yaxis     = list( title = "Pre-Departure delay [min]",
                                 titlefont = list(size = 11))) %>% 
       config( displaylogo = FALSE,
               modeBarButtonsToRemove = config_bar_remove_buttons)
+} else {
+
+cat("
+Analysis on pre-departure delay are only available for airports providing the required data 
+using the Airport Operator Data Flow (APDF).
+
+If you belong to the airport and would like to implement such data flow, please contact DANSAP@eurocontrol.int")
+  
 }
 ```
 
-### Monthly Pre-departure Delay (as reported by airports)
+### Monthly Pre-Departure Delay
 
 ```{r}
 if (params$apdf == 'Y')
@@ -1222,7 +1321,7 @@ PDDLY_MM <- params$pddly_mm %>%
 
 PDDLY_MM$DLY_CAT <- factor(PDDLY_MM$DLY_CAT,
                            levels = c("TOT_DLY_UNID", "TOT_DLY_OTHER", "TOT_DLY_89"),
-                           labels = c("unidentified", "other reasons", "ATC pre-departure <br> delay (code 89)"))
+                           labels = c("Unidentified", "Other reasons", "ATC Pre-Departure <br> delay (code 89)"))
 
 button_type_list <-  list( buttons   = button_list, 
                            type      = 'buttons', 
@@ -1251,7 +1350,7 @@ PDDLY_MM %>%
          ) %>%
   layout( barmode     = "stack",
           xaxis       = tick_yr_no_title,
-          yaxis       = list( title="Pre-departure delay [min]",
+          yaxis       = list( title="Pre-Departure delay [min]",
                               titlefont = list(size = 11)),
           showlegend  = TRUE,
           updatemenus = list( button_type_list )
@@ -1298,7 +1397,7 @@ TMP %>%
                                                                 list(step     = "all"))),
                             rangeslider = list(type = "date")
                             ), 
-               yaxis = list( title = "Pre-departure delay [min]",
+               yaxis = list( title = "Pre-Departure delay [min]",
                              titlefont = list(size = 11))) %>% 
         config( displaylogo = FALSE,
                 modeBarButtonsToRemove = config_bar_remove_buttons)
@@ -1338,7 +1437,7 @@ predepdly_pm %>%
          ) %>%
   layout( barmode = "stack",
           xaxis = tick_yr_no_title,
-          yaxis=list( title="Avg. ATC Pre-departure delay [min/dep]",
+          yaxis=list( title="Avg. ATC Pre-Departure delay [min/dep]",
                       titlefont = list(size = 11),
                       hoverformat = ".2f"),
           showlegend = FALSE,
@@ -1390,6 +1489,14 @@ g1 <- g1 %>%
                 modeBarButtonsToRemove = config_bar_remove_buttons)
 
 g1
+} else {
+
+cat("
+Analysis on turnaround times are only available for airports providing the required data 
+using the Airport Operator Data Flow (APDF).
+
+If you belong to the airport and would like to implement such data flow, please contact DANSAP@eurocontrol.int")
+  
 }
 ```
 
@@ -1400,8 +1507,8 @@ if (params$apdf == 'Y')
 { 
 TURN_MM <- params$turn_mm %>% 
             select(YEAR, MONTH_NUM, AC_CLASS, AVG_ACTT, AVG_SDTT) %>% 
-            mutate( LBL_ACTUAL = paste0("actual turnaround ", AC_CLASS),
-                    LBL_SCHED  = paste0("scheduled turnaround ",AC_CLASS))
+            mutate( LBL_ACTUAL = paste0("Actual Turnaround ", AC_CLASS),
+                    LBL_SCHED  = paste0("Scheduled Turnaround ",AC_CLASS))
 
 button_type_list <-  list( buttons   = button_list, 
                            type      = 'buttons', 
@@ -1452,7 +1559,7 @@ TURN_MM %>%  plot_ly() %>%
               layout( updatemenus = list( button_type_list ),
                       hovermode   = "x unified",
                       xaxis       = tick_yr_no_title,
-                      yaxis       = list(title = "Average monthly turn times [min]",
+                      yaxis       = list(title = "Average Turnaround times [min]",
                                          titlefont = list(size = 11))) %>%
               config( displaylogo = FALSE,
                       modeBarButtonsToRemove = config_bar_remove_buttons)
@@ -1527,10 +1634,10 @@ All other airport related data is collected through the Airport Operator Data Fl
 
 **Data and metrics are shown based on availability at the moment of publication**    
 
-*	traffic data comprises all IFR flight plans for the airport
+*	Traffic data comprises all IFR flight plans for the airport
 *	ATFM delay data captures the arrival ATFM delay triggered by constraints at the airport.
 *	ATFM delays are grouped according to the regulation reason as described in https://ansperformance.eu/definition/atfm-delay-codes/
-*	additional ASMA time measures the difference between an observed travel time elapsing from entering the 40NM radius around the airport to landing. This time is compared against a reference time to the respective entry sector, aircraft type, and landing runway.
-*	in analogy, additional taxi-times are measured for the taxi-out and taxi-in phase. The observed taxi times are compared with a respective reference time. The referncereference time considers the parking position and runway used by the departure/arrival.
-*	pre-dearturedeparture delay provides for the airspace user reported delay reasoning in case of departures blocking off late. Delay codes have to be provided for delays >= 4 minutes. Most Aairports per se do not validate these delay codes, however, effort is underway to ensure appropriateness of the reported delay codes.
-*	turnaround shows the time elapsing between an aircraft blocking in and blocking off for the next flight.
+*	Additional ASMA time measures the difference between an observed travel time elapsing from entering the 40NM radius around the airport to landing. This time is compared against a reference time to the respective entry sector, aircraft type, and landing runway.
+*	In analogy, additional taxi-times are measured for the taxi-out and taxi-in phase. The observed taxi times are compared with a respective reference time. The reference time considers the parking position and runway used by the departure/arrival.
+*	Predeparture delay provides for the airspace user reported delay reasoning in case of departures blocking off late. Delay codes have to be provided for delays >= 4 minutes. Most airports per se do not validate these delay codes, however, effort is underway to ensure appropriateness of the reported delay codes.
+*	Turnaround shows the time elapsing between an aircraft blocking in and blocking off for the next flight.
